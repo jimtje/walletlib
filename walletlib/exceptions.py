@@ -1,5 +1,11 @@
-class SerializationError(Exception):
+class WalletDatError(Exception):
     pass
 
-class DatabaseError(Exception):
+class SerializationError(WalletDatError):
+    pass
+
+class DatabaseError(WalletDatError):
+    pass
+
+class KeypairError(WalletDatError):
     pass

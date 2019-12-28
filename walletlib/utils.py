@@ -1,10 +1,15 @@
 import struct
-import base58
+from base58 import b58decode_check, b58encode_check
 import hashlib
 import binascii
 import socket
 from .exceptions import *
-
+import codecs
+from .crypto import *
+from coincurve import PrivateKey as _PrivateKey, PublicKey as _PrivateKey
+import ecdsa
+from ecdsa import der
+from typing import Dict, List, Tuple
 
 class BCDataStream(object):
     def __init__(self, input):
@@ -28,7 +33,7 @@ class BCDataStream(object):
 
     def read_bytes(self, length):
         try:
-            result = self.input[self.read_cursor:self.read_cursor + length]
+            result = self.input[self.read_cursor : self.read_cursor + length]
             self.read_cursor += length
             return result
         except IndexError:
@@ -38,32 +43,40 @@ class BCDataStream(object):
         return self.read_bytes(1)[0] != chr(0)
 
     def read_int16(self):
-        return self._read_num('<h')
+        return self._read_num("<h")
 
     def read_uint16(self):
-        return self._read_num('<H')
+        return self._read_num("<H")
 
     def read_int32(self):
-        return self._read_num('<i')
+        return self._read_num("<i")
 
     def read_uint32(self):
-        return self._read_num('<I')
+        return self._read_num("<I")
 
     def read_int64(self):
-        return self._read_num('<q')
+        return self._read_num("<q")
 
     def read_uint64(self):
-        return self._read_num('<Q')
+        return self._read_num("<Q")
+
+    def read_uint256(self):
+        r = 0
+        for i in range(8):
+            t = struct.unpack("<I", self.read_bytes(4))[0]
+            r += t << (i * 32)
+        return r
+
 
     def read_compact_size(self):
         size = int(self.input[self.read_cursor])
         self.read_cursor += 1
         if size == 253:
-            size = self._read_num('<H')
+            size = self._read_num("<H")
         elif size == 254:
-            size = self._read_num('<I')
+            size = self._read_num("<I")
         elif size == 255:
-            size = self._read_num('<Q')
+            size = self._read_num("<Q")
         return size
 
     def _read_num(self, format):
@@ -71,26 +84,33 @@ class BCDataStream(object):
         self.read_cursor += struct.calcsize(format)
         return i
 
+
 def parse_TxIn(vds):
     d = {}
-    d['prevout_hash'] = vds.read_bytes(32)
-    d['prevout_n'] = vds.read_uint32()
-    d['scriptSig'] = vds.read_bytes(vds.read_compact_size())
-    d['sequence'] = vds.read_uint32()
+    d["prevout_hash"] = codecs.encode(vds.read_bytes(32), encoding="hex").decode(
+        "utf-8"
+    )
+    d["prevout_n"] = vds.read_uint32()
+    d["scriptSig"] = codecs.encode(
+        vds.read_bytes(vds.read_compact_size()), encoding="hex"
+    ).decode("utf-8")
+    d["sequence"] = vds.read_uint32()
     return d
 
 
 def parse_TxOut(vds):
     d = {}
-    d['value'] = vds.read_int64() / 1e8
-    d['scriptPubKey'] = vds.read_bytes(vds.read_compact_size())
+    d["value"] = vds.read_int64() / 1e8
+    d["scriptPubKey"] = codecs.encode(
+        vds.read_bytes(vds.read_compact_size()), encoding="hex"
+    ).decode("utf-8")
     return d
 
 
 def inversetxid(txid):
     txid = binascii.hexlify(txid).decode()
     if len(txid) != 64:
-        raise ValueError('txid %r length != 64' % txid)
+        raise ValueError("txid %r length != 64" % txid)
     new_txid = ""
     for i in range(32):
         new_txid += txid[62 - 2 * i]
@@ -99,78 +119,56 @@ def inversetxid(txid):
 
 
 def parse_CAddress(vds):
-    d = {'ip': '0.0.0.0', 'port': 0, 'nTime': 0}
+    d = {"ip": "0.0.0.0", "port": 0, "nTime": 0}
     try:
-        d['nVersion'] = vds.read_int32()
-        d['nTime'] = vds.read_uint32()
-        d['nServices'] = vds.read_uint64()
-        d['pchReserved'] = vds.read_bytes(12)
-        d['ip'] = socket.inet_ntoa(vds.read_bytes(4))
-        d['port'] = vds.read_uint16()
+        d["nVersion"] = vds.read_int32()
+        d["nTime"] = vds.read_uint32()
+        d["nServices"] = vds.read_uint64()
+        d["pchReserved"] = vds.read_bytes(12)
+        d["ip"] = socket.inet_ntoa(vds.read_bytes(4))
+        d["port"] = vds.read_uint16()
     except:
         pass
     return d
 
 
 def parse_BlockLocator(vds):
-    d = {'hashes': []}
+    d = {"hashes": []}
     nHashes = vds.read_compact_size()
     for i in range(nHashes):
-        d['hashes'].append(vds.read_bytes(32))
+        d["hashes"].append(vds.read_bytes(32))
     return d
 
 
-def parse_setting(setting, vds):
-    if setting[0] == "f":  # flag (boolean) settings
-        return str(vds.read_boolean())
-    elif setting[0:4] == "addr":  # CAddress
-        return parse_CAddress(vds)
-    elif setting == "nTransactionFee":
-        return vds.read_int64()
-    elif setting == "nLimitProcessors":
-        return vds.read_int32()
-    return {'unknown': vds}
 
-def double_sha256(data):
-    return hashlib.sha256(hashlib.sha256(data).digest()).digest()
-
-
-def encode_base58_check(secret):
-    hash = double_sha256(secret)
-    return base58.b58encode(secret + hash[0:4])
-
-
-def privkey_to_secret(privkey):
+def privkey_to_secret(privkey: bytes) -> bytes:
     if len(privkey) == 279:
-        return privkey[9:9 + 32]
+        return privkey[9 : 9 + 32]
     else:
-        return privkey[8:8 + 32]
+        return privkey[8 : 8 + 32]
 
 
-def secret_to_asecret(secret, version):
-    prefix = (version + 128) & 255
-    vchIn = bytes([prefix]) + secret
-    return encode_base58_check(vchIn)
+def secret_to_asecret(secret: object, version: int, compressed: bool = False) -> object:
+    prefix = chr((version + 128) & 255)
+    if version == 48:
+        prefix = chr(128)
+    vchIn = prefix + str(secret)
+    if compressed:
+        vchIn += "\01"
+    return b58encode_check(vchIn)
 
 
 def hash_160(public_key):
-    md = hashlib.new('ripemd160')
+    md = hashlib.new("ripemd160")
     md.update(hashlib.sha256(public_key).digest())
     return md.digest()
 
 
-def public_key_to_bc_address(public_key, version):
-    h160 = hash_160(public_key)
-    return hash_160_to_bc_address(h160, version)
+def bytes_to_hex(bytestring):
+    return binascii.hexlify(bytestring).decode()
 
 
-def hash_160_to_bc_address(h160, version):
-    vh160 = bytes([int(version)]) + h160
-    h = double_sha256(vh160)
-    addr = vh160 + h[0:4]
-    return base58.b58encode(addr)
-
-
-def bc_address_to_hash_160(addr):
-    bytes = base58.b58decode(addr, 25)
-    return bytes[1:21]
+def hex_to_bytes(hexstring):
+    if len(hexstring) & 1:
+        hexstring = "0" + hexstring
+    return bytes.fromhex(hexstring)
