@@ -67,6 +67,14 @@ class BCDataStream(object):
             r += t << (i * 32)
         return r
 
+    def read_vector(self, f):
+        nit = self.read_compact_size()
+        r = []
+        for _ in range(nit):
+            t = f()
+            t.deserialize(self)
+            r.append(t)
+        return r
 
     def read_compact_size(self):
         size = int(self.input[self.read_cursor])
@@ -83,6 +91,12 @@ class BCDataStream(object):
         (i,) = struct.unpack_from(format, self.input, self.read_cursor)
         self.read_cursor += struct.calcsize(format)
         return i
+
+    def get_onebyte(self):
+        byte = self.read_bytes(1)
+        self.read_cursor -= 1
+        return byte
+
 
 
 def parse_TxIn(vds):

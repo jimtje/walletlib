@@ -7,14 +7,16 @@ from Crypto.Cipher import AES
 import datetime
 import socket
 import codecs
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, TypeVar, Type
 from coincurve import PrivateKey, PublicKey
 from .crypto import *
+import json
+
 
 
 class Walletdat(object):
-    def __init__(self):
-        self.db_parsed = None
+    def __init__(self, db: collections.OrderedDict) -> None:
+        self.db_parsed = db
         self.keypairs = []
         self.pool = []
         self.txes = []
@@ -33,13 +35,13 @@ class Walletdat(object):
         self.decrypter = Crypter()
         self.mkey = None
 
-    def load(self, filename, passphrase=None):
+    @classmethod
+    def load(cls, filename):
         try:
             db = DB()
             db.open(filename, "main", DB_BTREE, DB_THREAD | DB_RDONLY)
             coll = collections.OrderedDict((k, db[k]) for k in db.keys())
-            self.db_parsed = coll
-            self.parse(passphrase=passphrase)
+            return cls(coll)
         except (DBNoSuchFileError, DBError):
             raise DatabaseError
 
@@ -60,6 +62,10 @@ class Walletdat(object):
                 self.keypairs.append(keypair)
             elif type == "keymeta":
                 pubkey = kds.read_bytes(kds.read_compact_size())
+                if len(pubkey) == 33:
+                    compressed = True
+                else:
+                    compressed = False
                 version = vds.read_int32()
                 createtime = vds.read_int64()
                 if version != 10:
@@ -74,9 +80,14 @@ class Walletdat(object):
                 else:
                     fingerprint = vds.read_uint32()
                     has_keyorigin = vds.read_boolean()
-                if any(k.publickey == PublicKey(pubkey) for k in self.keypairs):
+                if any(
+                    k.publickey == PublicKey(pubkey).format(compressed=compressed)
+                    for k in self.keypairs
+                ):
                     for key in self.keypairs:
-                        if key.publickey == PublicKey(pubkey):
+                        if key.publickey == PublicKey(pubkey).format(
+                            compressed=compressed
+                        ):
                             key.set_keymeta(
                                 version,
                                 createtime,
@@ -97,14 +108,15 @@ class Walletdat(object):
                         }
                     )
             elif type == "defaultkey":
-                self.defaultkey = PublicKey(vds.read_bytes(vds.read_compact_size()))
+                pk = vds.read_bytes(vds.read_compact_size())
+                if len(pk) == 33:
+                    self.defaultkey = PublicKey(pk).format()
+                else:
+                    self.defaultkey = PublicKey(pk).format(compressed=False)
             elif type == "name":
                 if len(self.addressbook) > 0:
                     addr = kds.read_string().decode("utf-8")
-                    if any(
-                        item["address"] == addr
-                        for item in self.addressbook
-                    ):
+                    if any(item["address"] == addr for item in self.addressbook):
                         for item in self.addressbook:
                             if item["address"] == addr:
                                 item.update(
@@ -120,21 +132,13 @@ class Walletdat(object):
                 else:
                     addr = kds.read_string().decode("utf-8")
                     self.addressbook.append(
-                        {
-                            "address": addr,
-                            "label": vds.read_string().decode("utf-8"),
-                        }
+                        {"address": addr, "label": vds.read_string().decode("utf-8")}
                     )
-                self.default_wifnetwork = ord(
-                    b58decode_check(addr)[:1]
-                )
+                self.default_wifnetwork = ord(b58decode_check(addr)[:1])
             elif type == "purpose":
                 if len(self.addressbook) > 0:
                     addr = kds.read_string().decode("utf-8")
-                    if any(
-                        item["address"] == addr
-                        for item in self.addressbook
-                    ):
+                    if any(item["address"] == addr for item in self.addressbook):
                         for item in self.addressbook:
                             if item["address"] == addr:
                                 item.update(
@@ -150,16 +154,16 @@ class Walletdat(object):
                 else:
                     addr = kds.read_string().decode("utf-8")
                     self.addressbook.append(
-                        {
-                            "address": addr,
-                            "purpose": vds.read_string().decode("utf-8"),
-                        }
+                        {"address": addr, "purpose": vds.read_string().decode("utf-8")}
                     )
 
             elif type == "tx":
                 # todo: add segwit
-                txid = invert_txid(kds.read_bytes(32))
-                self.txes.append(Transaction.parse(txid, vds))
+                try:
+                    txid = invert_txid(kds.read_bytes(32))
+                    self.txes.append(Transaction.parse(txid, vds))
+                except:
+                    pass
             elif type == "hdchain":
                 version = vds.read_uint32()
                 chain_counter = vds.read_uint32()
@@ -213,21 +217,23 @@ class Walletdat(object):
                 nversion = vds.read_int32()
                 ntime = vds.read_int64()
                 pubkey = vds.read_bytes(vds.read_compact_size())
+                if len(pubkey) == 33:
+                    compressed = True
+                else:
+                    compressed = False
                 self.pool.append(
                     {
                         "n": n,
                         "nversion": nversion,
                         "ntime": ntime,
-                        "publickey": PublicKey(pubkey),
+                        "publickey": PublicKey(pubkey).format(compressed=compressed),
                     }
                 )
             elif type == "destdata":
                 publickey = kds.read_string().decode()
                 key = kds.read_string().decode()
-                #destination = vds.read_string().decode()
-                self.destdata.append(
-                    {"publickey": publickey, "key": key}
-                )
+                # destination = vds.read_string().decode()
+                self.destdata.append({"publickey": publickey, "key": key})
             elif type == "orderposnext":
                 self.orderposnext = vds.read_int64()
             elif type == "flags":
@@ -238,7 +244,13 @@ class Walletdat(object):
                 salt = vds.read_string()
                 derivationmethod = vds.read_uint32()
                 derivationiters = vds.read_uint32()
-                self.mkey = {"nID": nid, "encrypted_key": encrypted_key.hex(), "salt": salt.hex(), "derivationmethod": derivationmethod, "derivationiterations": derivationiters}
+                self.mkey = {
+                    "nID": nid,
+                    "encrypted_key": encrypted_key.hex(),
+                    "salt": salt.hex(),
+                    "derivationmethod": derivationmethod,
+                    "derivationiterations": derivationiters,
+                }
                 if passphrase is not None:
                     self.decrypter.keyfrompassphrase(
                         encrypted_key.hex(),
@@ -273,6 +285,76 @@ class Walletdat(object):
                             crypted=True,
                         )
                     )
+
+    def dump_keys(self, filepath=None, version=None):
+        output_list = []
+        if version is None:
+            prefix = self.default_wifnetwork
+        else:
+            prefix = version
+
+        for keypair in self.keypairs:
+            pkey = keypair.pubkey_towif(prefix)
+            priv = keypair.privkey_towif(prefix, compressed=keypair.compressed)
+            output_list.append({"public_key": pkey, "private_key": priv})
+            if filepath is not None:
+                with open(filepath, "a") as fq:
+                    fq.write(pkey.decode() + ":" + priv.decode() + "\n")
+        return output_list
+
+    def dump_all(self, filepath=None, version=None):
+
+        structures = {
+            "keys": [],
+            "pool": [],
+            "tx": [],
+            "minversion": self.minversion,
+            "version": self.version,
+            "bestblock": self.bestblock,
+            "default_network_version": self.default_wifnetwork,
+        }
+        if version is None:
+            prefix = self.default_wifnetwork
+        else:
+            prefix = version
+
+        for keypair in self.keypairs:
+            pkey = keypair.pubkey_towif(prefix)
+            priv_compressed = keypair.privkey_towif(prefix, compressed=True)
+            priv_uncompressed = keypair.privkey_towif(prefix, compressed=False)
+            keyd = {
+                "public_key": pkey.decode(),
+                "compressed_private_key": priv_compressed.decode(),
+                "uncompressed_private_key": priv_uncompressed.decode(),
+            }
+            structures["keys"].append(keyd)
+
+        for tx in self.txes:
+            apg = {
+                "txid": tx.txid,
+                "txin": tx.txin,
+                "txout": tx.txout,
+                "locktime": tx.locktime,
+            }
+            structures["tx"].append(apg)
+
+        for p in self.pool:
+            z = bytes([prefix])
+            structures["pool"].append(
+                {
+                    "n": p["n"],
+                    "nversion": p["nversion"],
+                    "ntime": datetime.datetime.utcfromtimestamp(p["ntime"]).isoformat(),
+                    "public_key": b58encode_check(
+                        z + ripemd160_sha256(p["publickey"])
+                    ).decode(),
+                }
+            )
+
+        if filepath is not None:
+            with open(filepath, "a") as fq:
+                fq.write(json.dumps(structures, sort_keys=True, indent=4))
+        return structures
 
 
 class KeyPair(object):
@@ -389,16 +471,19 @@ class KeyPair(object):
         self.has_keyorigin = has_keyorigin
 
     def pubkey_towif(self, network_version=0):
-        prefix = bytes(chr(network_version), "utf-8")
+        prefix = bytes([network_version])
         return b58encode_check(prefix + ripemd160_sha256(self.publickey))
 
     def privkey_towif(self, network_version=0, compressed=True):
-        prefix = bytes(chr(network_version), "utf-8")
-        if compressed:
-            suffix = b"\x01"
-        else:
-            suffix = b""
-        return b58encode_check(prefix + self.privkey + suffix)
+        if self.privkey is not None:
+            prefix = bytes([network_version + 128])
+            if compressed:
+                suffix = b"\x01"
+            else:
+                suffix = b""
+            return b58encode_check(prefix + self.privkey.secret + suffix)
+        elif self.encryptedkey is not None:
+            return self.encryptedkey
 
     def __repl__(self):
         if self.privkey is None and self.encryptedkey is not None:
@@ -441,23 +526,21 @@ class Transaction(object):
         txin = []
         for _ in range(n_vin):
             d = {
-                "prevout_hash": vds.read_bytes(32),
+                "prevout_hash": vds.read_bytes(32).hex(),
                 "prevout_n": vds.read_uint32(),
-                "scriptSig": vds.read_bytes(vds.read_compact_size())
+                "scriptSig": vds.read_bytes(vds.read_compact_size()).hex(),
+                "sequence": vds.read_uint32()
             }
-            try:
-                d.update({"sequence": vds.read_uint32()})
-            except:
-                pass
             txin.append(d)
         n_vout = vds.read_compact_size()
         txout = []
         for _ in range(n_vout):
             d = {
                 "value": vds.read_int64() / 1e8,
-                "scriptPubKey": vds.read_bytes(vds.read_compact_size()),
+                "scriptPubKey": vds.read_bytes(vds.read_compact_size()).hex(),
             }
             txout.append(d)
         locktime = vds.read_uint32()
-        tx = vds.input[start: vds.read_cursor]
+        tx = vds.input[start : vds.read_cursor]
         return cls(txid, version, txin, txout, locktime, tx)
+
