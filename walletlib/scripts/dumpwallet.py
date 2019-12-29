@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 """CLI Interface to Walletlib
 
 This is a simple implementation to allow walletlib to be used from the cli.
@@ -44,5 +45,3 @@ def main(filename, password, output, versionprefix, secretprefix, keys):
     click.echo("Done")
 
 
-if __name__ == "__main__":
-    main()
