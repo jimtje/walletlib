@@ -90,7 +90,7 @@ coverage.xml
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
-
+.user/
 # Flask stuff:
 instance/
 .webassets-cache
@@ -239,3 +239,7 @@ fabric.properties
 .idea/caches/build_file_checksums.ser
 
 /.idea/*
+
+tests/kd.txt
+
+*.txt

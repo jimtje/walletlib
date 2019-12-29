@@ -1,15 +1,7 @@
 import struct
-from base58 import b58decode_check, b58encode_check
-import hashlib
-import binascii
 import socket
 from .exceptions import *
-import codecs
-from .crypto import *
-from coincurve import PrivateKey as _PrivateKey, PublicKey as _PrivateKey
-import ecdsa
-from ecdsa import der
-from typing import Dict, List, Tuple
+
 
 class BCDataStream(object):
     def __init__(self, input):
@@ -99,39 +91,6 @@ class BCDataStream(object):
 
 
 
-def parse_TxIn(vds):
-    d = {}
-    d["prevout_hash"] = codecs.encode(vds.read_bytes(32), encoding="hex").decode(
-        "utf-8"
-    )
-    d["prevout_n"] = vds.read_uint32()
-    d["scriptSig"] = codecs.encode(
-        vds.read_bytes(vds.read_compact_size()), encoding="hex"
-    ).decode("utf-8")
-    d["sequence"] = vds.read_uint32()
-    return d
-
-
-def parse_TxOut(vds):
-    d = {}
-    d["value"] = vds.read_int64() / 1e8
-    d["scriptPubKey"] = codecs.encode(
-        vds.read_bytes(vds.read_compact_size()), encoding="hex"
-    ).decode("utf-8")
-    return d
-
-
-def inversetxid(txid):
-    txid = binascii.hexlify(txid).decode()
-    if len(txid) != 64:
-        raise ValueError("txid %r length != 64" % txid)
-    new_txid = ""
-    for i in range(32):
-        new_txid += txid[62 - 2 * i]
-        new_txid += txid[62 - 2 * i + 1]
-    return new_txid
-
-
 def parse_CAddress(vds):
     d = {"ip": "0.0.0.0", "port": 0, "nTime": 0}
     try:
@@ -162,27 +121,3 @@ def privkey_to_secret(privkey: bytes) -> bytes:
         return privkey[8 : 8 + 32]
 
 
-def secret_to_asecret(secret: object, version: int, compressed: bool = False) -> object:
-    prefix = chr((version + 128) & 255)
-    if version == 48:
-        prefix = chr(128)
-    vchIn = prefix + str(secret)
-    if compressed:
-        vchIn += "\01"
-    return b58encode_check(vchIn)
-
-
-def hash_160(public_key):
-    md = hashlib.new("ripemd160")
-    md.update(hashlib.sha256(public_key).digest())
-    return md.digest()
-
-
-def bytes_to_hex(bytestring):
-    return binascii.hexlify(bytestring).decode()
-
-
-def hex_to_bytes(hexstring):
-    if len(hexstring) & 1:
-        hexstring = "0" + hexstring
-    return bytes.fromhex(hexstring)
