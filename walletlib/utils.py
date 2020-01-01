@@ -4,6 +4,7 @@ from .exceptions import *
 
 
 class BCDataStream(object):
+    """BCDataStream from pywallet"""
     def __init__(self, input):
         self.input = bytes(input)
         self.read_cursor = 0

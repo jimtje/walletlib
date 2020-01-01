@@ -243,3 +243,11 @@ fabric.properties
 tests/kd.txt
 
 *.txt
+
+tests/test_endpoint.py
+
+dumpwallet.py
+
+tests/test_wallets/
+
+batch_process.py

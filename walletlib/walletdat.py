@@ -35,6 +35,13 @@ class Walletdat(object):
 
     @classmethod
     def load(cls, filename):
+        """
+
+        :param filename: name of the file to load, file should be a BerkeleyDB Wallet.dat file
+        :type filename: string
+        :return: cls
+        :rtype:Walletdat
+        """
         try:
             db = DB()
             db.open(filename, "main", DB_BTREE, DB_THREAD | DB_RDONLY)
@@ -44,6 +51,13 @@ class Walletdat(object):
             raise DatabaseError
 
     def parse(self, passphrase: Optional[str] = None) -> None:
+        """Parse the raw bytes of the db's contents. A bit of a mess right now so API likely to change
+
+        :param passphrase: Passphrase to the wallet
+        :type passphrase: string
+        :return: None 
+        :rtype: None
+        """
         for key, value in self.db_parsed.items():
             kds = BCDataStream(key)
             vds = BCDataStream(value)
@@ -232,7 +246,22 @@ class Walletdat(object):
             else:
                 print("{} type not implemented".format(type))
 
-    def dump_keys(self, filepath: Optional[str] = None, version: Optional[int] = None, privkey_prefix_override: Optional[int] = None) -> List:
+    def dump_keys(self, filepath: Optional[str] = None, version: Optional[int] = None, privkey_prefix_override:
+    Optional[int] = None, compression_override: Optional[bool] = None) -> List:
+        """ Dump just pubkey:privatekey either as a list, write to a file, or both.
+
+        
+        :param filepath: The output file. Leave as None to not write to file
+        :type filepath:  string
+        :param version: Version byte for the p2pkh key being generated. Should be between 0 and 127
+        :type version:  int
+        :param privkey_prefix_override: WIF Version bytes for secret. Should be between 128 and 255
+        :type privkey_prefix_override: int
+        :return: List of dicts with pubkey and privkey in bytesm or if not decrypted, pubkey and encrypted key
+        :rtype: List
+        :param compression_override: Compression setting for output keys, use None to automatically determine
+        :type compression_override: bool
+        """
         if len(self.keypairs) == 0 and self.db_parsed is not None:
             self.parse()
             # Run parse to populate if forgot
@@ -248,7 +277,10 @@ class Walletdat(object):
             else:
                 wif_prefix = prefix
             pkey = keypair.pubkey_towif(prefix)
-            priv = keypair.privkey_towif(wif_prefix, compressed=keypair.compressed)
+            if compression_override is not None:
+                priv = keypair.privkey_towif(wif_prefix, compressed=compression_override)
+            else:
+                priv = keypair.privkey_towif(wif_prefix, compressed=keypair.compressed)
             output_list.append({"public_key": pkey, "private_key": priv})
 
             if filepath is not None:
@@ -261,6 +293,20 @@ class Walletdat(object):
         return output_list
 
     def dump_all(self, filepath: Optional[str] = None, version: Optional[int] = None, privkey_prefix_override: Optional[int] = None) -> Dict:
+        """ Dump all data from wallet
+
+        :param filepath: The output file. Leave as None to not write to file
+        :type filepath:  String
+        :param version: Version byte for the p2pkh key being generated. Should be between 0 and 127
+        :type version: Int
+        :param privkey_prefix_override:  WIF Version byte override value just for the private key
+        :type privkey_prefix_override: Int
+        :return: A dict with the following key:values - keys: lists of dicts with compressed_private_key,
+        public_key, uncompressed_private_key, label, created; pool: list of dicts with keys: n, nversion, ntime,
+        publickey; tx: list of dicts with keys: txid, txin, txout, locktime; minversion, bestblock,
+        default_network_version, orderposnext
+        :rtype:
+        """
 
         structures = {
                 "keys": [], "pool": [], "tx": [], "minversion": self.minversion, "version": self.version,
@@ -276,7 +322,7 @@ class Walletdat(object):
             pkey = keypair.pubkey_towif(prefix)
             if keypair.encryptedkey is None:
                 if privkey_prefix_override is not None:
-                    wif_prefix =  privkey_prefix_override - 128
+                    wif_prefix = privkey_prefix_override - 128
                 else:
                     wif_prefix = prefix
                 priv_compressed = keypair.privkey_towif(wif_prefix, compressed=True)
@@ -288,7 +334,7 @@ class Walletdat(object):
             else:
                 priv_encrypted = keypair.encryptedkey.hex()
                 keyd = {
-                        "public_key": pkey.decode(), "encrypted_private_key": priv_encrypted.decode(),
+                        "public_key": pkey.decode(), "encrypted_private_key": priv_encrypted,
                 }
             if len(self.addressbook) > 0:
                 for a in self.addressbook:
@@ -307,12 +353,16 @@ class Walletdat(object):
             structures["tx"].append(apg)
 
         z = bytes([prefix])
+        pools = []
         for p in self.pool:
-            structures["pool"].append({
+            pools.append({
                     "n": p["n"], "nversion": p["nversion"],
                     "ntime": datetime.datetime.utcfromtimestamp(p["ntime"]).isoformat(),
                     "public_key": base58.b58encode_check(z + ripemd160_sha256(p["publickey"])).decode(),
             })
+
+        sorted(pools, key=lambda i: (i["n"], i["ntime"]))
+        structures["pool"] = pools
 
         defkey = base58.b58encode_check(z + ripemd160_sha256(self.defaultkey)).decode()
         structures["default_key"] = defkey
@@ -324,6 +374,10 @@ class Walletdat(object):
 
 
 class KeyPair(object):
+    """Keypair object, should not be called directly
+
+
+    """
     def __init__(self, rawkey, rawvalue, pubkey, sec, compressed, privkey=None, encryptedkey=None):
         self.rawkey = rawkey
         self.rawvalue = rawvalue
@@ -343,12 +397,21 @@ class KeyPair(object):
 
     @classmethod
     def parse_fromwallet(cls, kds, vds):
+        """Class method to parse entry from wallet entry
+
+        :param kds: BCDatastream object for keys
+        :type kds: BCDataStream
+        :param vds: BCDataStream object for values
+        :type vds: BCDataStream
+        :return: KeyPair
+        :rtype: KeyPair
+        """
         pubkeyraw = kds.read_bytes(kds.read_compact_size())
         privkeyraw = vds.read_bytes(vds.read_compact_size())
         if len(privkeyraw) == 279:
-            sec = privkeyraw[9: 9 + 32]
+            sec = privkeyraw[9:41]
         else:
-            sec = privkeyraw[8: 8 + 32]
+            sec = privkeyraw[8:40]
         privkey = PrivateKey(sec)
         pubkey = PublicKey(pubkeyraw)
         if len(pubkeyraw) == 33:
@@ -369,6 +432,19 @@ class KeyPair(object):
 
     @classmethod
     def parse_fromckey(cls, pubkey, privkey, encryptedkey, crypted=True):
+        """Parse keypair from ckey (encrypted) values from wallet
+
+        :param pubkey:
+        :type pubkey:
+        :param privkey:
+        :type privkey:
+        :param encryptedkey:
+        :type encryptedkey:
+        :param crypted:
+        :type crypted:
+        :return:
+        :rtype:
+        """
         pkey = PublicKey(pubkey)
         if len(pubkey) == 33:
             compress = True
@@ -379,9 +455,9 @@ class KeyPair(object):
                        compressed=compress)
         else:
             if len(privkey) == 279:
-                sec = privkey[9: 9 + 32]
+                sec = privkey[9:41]
             else:
-                sec = privkey[8: 8 + 32]
+                sec = privkey[8:40]
             prkey = PrivateKey(sec)
             if pkey == prkey.public_key:
                 pkey = prkey.public_key.format(compressed=compress)
@@ -393,6 +469,23 @@ class KeyPair(object):
 
     def set_keymeta(self, version: int, createtime: int, hdkeypath: Optional[str], hdmasterkey: Optional[str],
             fingerprint: int, has_keyorigin: bool = False, ) -> None:
+        """Set keymeta field
+
+        :param version: version parameter
+        :type version: int
+        :param createtime:created time
+        :type createtime: int
+        :param hdkeypath: hd key path
+        :type hdkeypath: str
+        :param hdmasterkey: hd master key
+        :type hdmasterkey: str
+        :param fingerprint: fingerprint value from wallet
+        :type fingerprint: int
+        :param has_keyorigin: whether has keyorigin field
+        :type has_keyorigin: bool
+        :return: None
+        :rtype:
+        """
         self.version = version
         self.createtime = createtime
         self.hdkeypath = hdkeypath
@@ -401,10 +494,26 @@ class KeyPair(object):
         self.has_keyorigin = has_keyorigin
 
     def pubkey_towif(self, network_version: int = 0) -> bytes:
+        """
+
+        :param network_version: version byte
+        :type network_version: int
+        :return:
+        :rtype:
+        """
         prefix = bytes([network_version])
         return base58.b58encode_check(prefix + ripemd160_sha256(self.publickey))
 
     def privkey_towif(self, network_version: int = 0, compressed: bool = True) -> bytes:
+        """
+
+        :param network_version: version byte
+        :type network_version: int
+        :param compressed: whether the key is compressed
+        :type compressed: bool
+        :return:
+        :rtype:
+        """
         if self.privkey is not None:
             prefix = bytes([network_version + 128])
             if compressed:
@@ -425,6 +534,13 @@ class KeyPair(object):
 
 
 def invert_txid(txid: bytes) -> str:
+    """invert txid string from bytes
+
+    :param txid: txid byte string from wallet
+    :type txid: bytes
+    :return: inverted txid string
+    :rtype: str
+    """
     tx = txid.hex()
     if len(tx) != 64:
         raise ValueError("txid %r length != 64" % tx)
@@ -436,7 +552,23 @@ def invert_txid(txid: bytes) -> str:
 
 
 class Transaction(object):
+    """Transaction object - not to be called directly."""
     def __init__(self, txid: str, version: int, txin: List, txout: List, locktime: int, tx: bytes) -> None:
+        """
+
+        :param txid: transaction id string
+        :type txid: str
+        :param version: version byte
+        :type version: int
+        :param txin: txin list of dicts
+        :type txin: list
+        :param txout: txout list of dicts
+        :type txout: list
+        :param locktime: int
+        :type locktime:
+        :param tx: bytes
+        :type tx:
+        """
         self.txid = txid
         self.version = version
         self.txin = txin
