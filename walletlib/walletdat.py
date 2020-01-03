@@ -67,7 +67,9 @@ class Walletdat(object):
                     keypair = KeyPair.parse_fromwallet(kds, vds)
                     self.keypairs.append(keypair)
                 except KeypairError:
-                    print("Error: Pubkey data doesn't match pubkey derived from private key")
+                    print(
+                        "Error: Pubkey data doesn't match pubkey derived from private key"
+                    )
             elif type == "wkey":
                 keypair = KeyPair.parse_fromwallet(kds, vds)
                 created = vds.read_int64()
@@ -97,12 +99,25 @@ class Walletdat(object):
                     has_keyorigin = vds.read_boolean()
                 for key in self.keypairs:
                     if key.publickey == PublicKey(pubkey).format(compressed=compressed):
-                        key.set_keymeta(version, createtime, hdkeypath, hdmasterkey, fingerprint, has_keyorigin, )
+                        key.set_keymeta(
+                            version,
+                            createtime,
+                            hdkeypath,
+                            hdmasterkey,
+                            fingerprint,
+                            has_keyorigin,
+                        )
                 else:
-                    self.keymetas.append({
-                            "version": version, "createtime": createtime, "hdkeypath": hdkeypath,
-                            "hdmasterkey": hdmasterkey, "fingerprint": fingerprint, "has_keyorigin": has_keyorigin,
-                    })
+                    self.keymetas.append(
+                        {
+                            "version": version,
+                            "createtime": createtime,
+                            "hdkeypath": hdkeypath,
+                            "hdmasterkey": hdmasterkey,
+                            "fingerprint": fingerprint,
+                            "has_keyorigin": has_keyorigin,
+                        }
+                    )
             elif type == "defaultkey":
                 pk = vds.read_bytes(vds.read_compact_size())
                 if len(pk) == 33:
@@ -115,14 +130,21 @@ class Walletdat(object):
                     if any(item["address"] == addr for item in self.addressbook):
                         for item in self.addressbook:
                             if item["address"] == addr:
-                                item.update({"label": vds.read_string().decode("utf-8")})
+                                item.update(
+                                    {"label": vds.read_string().decode("utf-8")}
+                                )
                     else:
-                        self.addressbook.append({
-                                "address": addr, "label": vds.read_string().decode("utf-8"),
-                        })
+                        self.addressbook.append(
+                            {
+                                "address": addr,
+                                "label": vds.read_string().decode("utf-8"),
+                            }
+                        )
                 else:
                     addr = kds.read_string().decode("utf-8")
-                    self.addressbook.append({"address": addr, "label": vds.read_string().decode("utf-8")})
+                    self.addressbook.append(
+                        {"address": addr, "label": vds.read_string().decode("utf-8")}
+                    )
                 self.default_wifnetwork = ord(base58.b58decode_check(addr)[:1])
             elif type == "purpose":
                 if len(self.addressbook) > 0:
@@ -130,14 +152,21 @@ class Walletdat(object):
                     if any(item["address"] == addr for item in self.addressbook):
                         for item in self.addressbook:
                             if item["address"] == addr:
-                                item.update({"purpose": vds.read_string().decode("utf-8")})
+                                item.update(
+                                    {"purpose": vds.read_string().decode("utf-8")}
+                                )
                     else:
-                        self.addressbook.append({
-                                "address": addr, "purpose": vds.read_string().decode("utf-8"),
-                        })
+                        self.addressbook.append(
+                            {
+                                "address": addr,
+                                "purpose": vds.read_string().decode("utf-8"),
+                            }
+                        )
                 else:
                     addr = kds.read_string().decode("utf-8")
-                    self.addressbook.append({"address": addr, "purpose": vds.read_string().decode("utf-8")})
+                    self.addressbook.append(
+                        {"address": addr, "purpose": vds.read_string().decode("utf-8")}
+                    )
 
             elif type == "tx":
                 # todo: add segwit
@@ -151,7 +180,9 @@ class Walletdat(object):
                 chain_counter = vds.read_uint32()
                 master_keyid = vds.read_bytes(20).hex()
                 self.hdchain = {
-                        "version": version, "chain_counter": chain_counter, "master_keyid": master_keyid,
+                    "version": version,
+                    "chain_counter": chain_counter,
+                    "master_keyid": master_keyid,
                 }
                 if version > 2:
                     self.hdchain["internal_counter"] = vds.read_uint32()
@@ -201,10 +232,14 @@ class Walletdat(object):
                     compressed = True
                 else:
                     compressed = False
-                self.pool.append({
-                        "n": n, "nversion": nversion, "ntime": ntime,
+                self.pool.append(
+                    {
+                        "n": n,
+                        "nversion": nversion,
+                        "ntime": ntime,
                         "publickey": PublicKey(pubkey).format(compressed=compressed),
-                })
+                    }
+                )
             elif type == "destdata":
                 publickey = kds.read_string().decode()
                 key = kds.read_string().decode()
@@ -221,12 +256,19 @@ class Walletdat(object):
                 derivationmethod = vds.read_uint32()
                 derivationiters = vds.read_uint32()
                 self.mkey = {
-                        "nID": nid, "encrypted_key": encrypted_key.hex(), "salt": salt.hex(),
-                        "derivationmethod": derivationmethod, "derivationiterations": derivationiters,
+                    "nID": nid,
+                    "encrypted_key": encrypted_key.hex(),
+                    "salt": salt.hex(),
+                    "derivationmethod": derivationmethod,
+                    "derivationiterations": derivationiters,
                 }
                 if passphrase is not None:
-                    self.decrypter.keyfrompassphrase(encrypted_key.hex(), salt.hex(), derivationiters,
-                            derivationmethod, )
+                    self.decrypter.keyfrompassphrase(
+                        encrypted_key.hex(),
+                        salt.hex(),
+                        derivationiters,
+                        derivationmethod,
+                    )
                     masterkey = self.decrypter.decrypt(encrypted_key)
                     self.decrypter.setkey(masterkey)
                 else:
@@ -238,16 +280,31 @@ class Walletdat(object):
                     self.decrypter.setiv(doublesha256(publickey))
                     dec = self.decrypter.decrypt(encrypted_privkey)
                     self.keypairs.append(
-                            KeyPair.parse_fromckey(pubkey=publickey, privkey=dec, encryptedkey=encrypted_privkey,
-                                    crypted=False, ))
+                        KeyPair.parse_fromckey(
+                            pubkey=publickey,
+                            privkey=dec,
+                            encryptedkey=encrypted_privkey,
+                            crypted=False,
+                        )
+                    )
                 else:
                     self.keypairs.append(
-                            KeyPair.parse_fromckey(pubkey=publickey, privkey=None, encryptedkey=encrypted_privkey))
+                        KeyPair.parse_fromckey(
+                            pubkey=publickey,
+                            privkey=None,
+                            encryptedkey=encrypted_privkey,
+                        )
+                    )
             else:
                 print("{} type not implemented".format(type))
 
-    def dump_keys(self, filepath: Optional[str] = None, version: Optional[int] = None, privkey_prefix_override:
-    Optional[int] = None, compression_override: Optional[bool] = None) -> List:
+    def dump_keys(
+        self,
+        filepath: Optional[str] = None,
+        version: Optional[int] = None,
+        privkey_prefix_override: Optional[int] = None,
+        compression_override: Optional[bool] = None,
+    ) -> List:
         """ Dump just pubkey:privatekey either as a list, write to a file, or both.
 
         
@@ -278,7 +335,9 @@ class Walletdat(object):
                 wif_prefix = prefix
             pkey = keypair.pubkey_towif(prefix)
             if compression_override is not None:
-                priv = keypair.privkey_towif(wif_prefix, compressed=compression_override)
+                priv = keypair.privkey_towif(
+                    wif_prefix, compressed=compression_override
+                )
             else:
                 priv = keypair.privkey_towif(wif_prefix, compressed=keypair.compressed)
             output_list.append({"public_key": pkey, "private_key": priv})
@@ -288,11 +347,18 @@ class Walletdat(object):
                     if self.mkey is None:
                         fq.write(pkey.decode() + ":" + priv.decode() + "\n")
                     else:
-                        fq.write(pkey.decode() + ":" + keypair.encryptedkey.hex() + "\n")
+                        fq.write(
+                            pkey.decode() + ":" + keypair.encryptedkey.hex() + "\n"
+                        )
 
         return output_list
 
-    def dump_all(self, filepath: Optional[str] = None, version: Optional[int] = None, privkey_prefix_override: Optional[int] = None) -> Dict:
+    def dump_all(
+        self,
+        filepath: Optional[str] = None,
+        version: Optional[int] = None,
+        privkey_prefix_override: Optional[int] = None,
+    ) -> Dict:
         """ Dump all data from wallet
 
         :param filepath: The output file. Leave as None to not write to file
@@ -307,10 +373,18 @@ class Walletdat(object):
         default_network_version, orderposnext
         :rtype:
         """
+        if len(self.keypairs) == 0 and self.db_parsed is not None:
+            self.parse()
 
         structures = {
-                "keys": [], "pool": [], "tx": [], "minversion": self.minversion, "version": self.version,
-                "bestblock": self.bestblock, "default_network_version": self.default_wifnetwork, "orderposnext": self.orderposnext
+            "keys": [],
+            "pool": [],
+            "tx": [],
+            "minversion": self.minversion,
+            "version": self.version,
+            "bestblock": self.bestblock,
+            "default_network_version": self.default_wifnetwork,
+            "orderposnext": self.orderposnext,
         }
 
         if version is None:
@@ -328,13 +402,15 @@ class Walletdat(object):
                 priv_compressed = keypair.privkey_towif(wif_prefix, compressed=True)
                 priv_uncompressed = keypair.privkey_towif(wif_prefix, compressed=False)
                 keyd = {
-                        "public_key": pkey.decode(), "compressed_private_key": priv_compressed.decode(),
-                        "uncompressed_private_key": priv_uncompressed.decode(),
+                    "public_key": pkey.decode(),
+                    "compressed_private_key": priv_compressed.decode(),
+                    "uncompressed_private_key": priv_uncompressed.decode(),
                 }
             else:
                 priv_encrypted = keypair.encryptedkey.hex()
                 keyd = {
-                        "public_key": pkey.decode(), "encrypted_private_key": priv_encrypted,
+                    "public_key": pkey.decode(),
+                    "encrypted_private_key": priv_encrypted,
                 }
             if len(self.addressbook) > 0:
                 for a in self.addressbook:
@@ -343,23 +419,33 @@ class Walletdat(object):
                         if "purpose" in a.keys():
                             keyd["purpose"] = a["purpose"]
             if keypair.createtime > 0:
-                keyd["created"] = datetime.datetime.utcfromtimestamp(keypair.createtime).isoformat()
+                keyd["created"] = datetime.datetime.utcfromtimestamp(
+                    keypair.createtime
+                ).isoformat()
             structures["keys"].append(keyd)
 
         for tx in self.txes:
             apg = {
-                    "txid": tx.txid, "txin": tx.txin, "txout": tx.txout, "locktime": tx.locktime,
+                "txid": tx.txid,
+                "txin": tx.txin,
+                "txout": tx.txout,
+                "locktime": tx.locktime,
             }
             structures["tx"].append(apg)
 
         z = bytes([prefix])
         pools = []
         for p in self.pool:
-            pools.append({
-                    "n": p["n"], "nversion": p["nversion"],
+            pools.append(
+                {
+                    "n": p["n"],
+                    "nversion": p["nversion"],
                     "ntime": datetime.datetime.utcfromtimestamp(p["ntime"]).isoformat(),
-                    "public_key": base58.b58encode_check(z + ripemd160_sha256(p["publickey"])).decode(),
-            })
+                    "public_key": base58.b58encode_check(
+                        z + ripemd160_sha256(p["publickey"])
+                    ).decode(),
+                }
+            )
 
         sorted(pools, key=lambda i: (i["n"], i["ntime"]))
         structures["pool"] = pools
@@ -378,7 +464,10 @@ class KeyPair(object):
 
 
     """
-    def __init__(self, rawkey, rawvalue, pubkey, sec, compressed, privkey=None, encryptedkey=None):
+
+    def __init__(
+        self, rawkey, rawvalue, pubkey, sec, compressed, privkey=None, encryptedkey=None
+    ):
         self.rawkey = rawkey
         self.rawvalue = rawvalue
         self.publickey = pubkey
@@ -420,8 +509,14 @@ class KeyPair(object):
             compress = False
         if pubkey == privkey.public_key:
             pubkey = privkey.public_key.format(compressed=compress)
-            return cls(rawkey=pubkeyraw, rawvalue=privkeyraw, pubkey=pubkey, privkey=privkey, sec=sec,
-                    compressed=compress, )
+            return cls(
+                rawkey=pubkeyraw,
+                rawvalue=privkeyraw,
+                pubkey=pubkey,
+                privkey=privkey,
+                sec=sec,
+                compressed=compress,
+            )
         else:
             raise KeypairError
 
@@ -451,8 +546,14 @@ class KeyPair(object):
         else:
             compress = False
         if crypted:
-            return cls(rawkey=pubkey, rawvalue=None, pubkey=pkey.format(compressed=compress), sec=None, encryptedkey=encryptedkey,
-                       compressed=compress)
+            return cls(
+                rawkey=pubkey,
+                rawvalue=None,
+                pubkey=pkey.format(compressed=compress),
+                sec=None,
+                encryptedkey=encryptedkey,
+                compressed=compress,
+            )
         else:
             if len(privkey) == 279:
                 sec = privkey[9:41]
@@ -461,14 +562,34 @@ class KeyPair(object):
             prkey = PrivateKey(sec)
             if pkey == prkey.public_key:
                 pkey = prkey.public_key.format(compressed=compress)
-                return cls(rawkey=pubkey, rawvalue=privkey, pubkey=pkey, privkey=prkey, sec=sec, compressed=compress, )
+                return cls(
+                    rawkey=pubkey,
+                    rawvalue=privkey,
+                    pubkey=pkey,
+                    privkey=prkey,
+                    sec=sec,
+                    compressed=compress,
+                )
             else:
                 print("Wrong decryption password")
-                return cls(rawkey=pubkey, rawvalue=None, pubkey=pkey, sec=None, encryptedkey=encryptedkey,
-                           compressed=compress)
+                return cls(
+                    rawkey=pubkey,
+                    rawvalue=None,
+                    pubkey=pkey,
+                    sec=None,
+                    encryptedkey=encryptedkey,
+                    compressed=compress,
+                )
 
-    def set_keymeta(self, version: int, createtime: int, hdkeypath: Optional[str], hdmasterkey: Optional[str],
-            fingerprint: int, has_keyorigin: bool = False, ) -> None:
+    def set_keymeta(
+        self,
+        version: int,
+        createtime: int,
+        hdkeypath: Optional[str],
+        hdmasterkey: Optional[str],
+        fingerprint: int,
+        has_keyorigin: bool = False,
+    ) -> None:
         """Set keymeta field
 
         :param version: version parameter
@@ -526,9 +647,13 @@ class KeyPair(object):
 
     def __repl__(self):
         if self.privkey is None and self.encryptedkey is not None:
-            return "Pubkey: {} Encrypted Privkey: {}".format(self.publickey.hex(), self.encryptedkey.hex())
+            return "Pubkey: {} Encrypted Privkey: {}".format(
+                self.publickey.hex(), self.encryptedkey.hex()
+            )
         elif self.privkey is not None and self.encryptedkey is None:
-            return "Pubkey: {} Privkey: {}".format(self.publickey.hex(), self.privkey.hex())
+            return "Pubkey: {} Privkey: {}".format(
+                self.publickey.hex(), self.privkey.hex()
+            )
         else:
             return "Pubkey: {}".format(self.publickey.hex())
 
@@ -553,7 +678,10 @@ def invert_txid(txid: bytes) -> str:
 
 class Transaction(object):
     """Transaction object - not to be called directly."""
-    def __init__(self, txid: str, version: int, txin: List, txout: List, locktime: int, tx: bytes) -> None:
+
+    def __init__(
+        self, txid: str, version: int, txin: List, txout: List, locktime: int, tx: bytes
+    ) -> None:
         """
 
         :param txid: transaction id string
@@ -584,17 +712,27 @@ class Transaction(object):
         txin = []
         for _ in range(n_vin):
             d = {
-                    "prevout_hash": vds.read_bytes(32).hex(), "prevout_n": vds.read_uint32(),
-                    "scriptSig": vds.read_bytes(vds.read_compact_size()).hex(), "sequence": vds.read_uint32(),
+                "prevout_hash": vds.read_bytes(32).hex(),
+                "prevout_n": vds.read_uint32(),
+                "scriptSig": vds.read_bytes(vds.read_compact_size()).hex(),
+                "sequence": vds.read_uint32(),
             }
             txin.append(d)
         n_vout = vds.read_compact_size()
         txout = []
         for _ in range(n_vout):
             d = {
-                    "value": vds.read_int64() / 1e8, "scriptPubKey": vds.read_bytes(vds.read_compact_size()).hex(),
+                "value": vds.read_int64() / 1e8,
+                "scriptPubKey": vds.read_bytes(vds.read_compact_size()).hex(),
             }
             txout.append(d)
         locktime = vds.read_uint32()
-        tx = vds.input[start: vds.read_cursor]
-        return cls(txid, version, sorted(txin, key=lambda i: (i["prevout_n"], i["sequence"])), txout, locktime, tx, )
+        tx = vds.input[start : vds.read_cursor]
+        return cls(
+            txid,
+            version,
+            sorted(txin, key=lambda i: (i["prevout_n"], i["sequence"])),
+            txout,
+            locktime,
+            tx,
+        )
