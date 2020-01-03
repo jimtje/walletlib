@@ -38,10 +38,9 @@ def main(filename, password, output, versionprefix, secretprefix, keys):
     click.echo(
         "Found {} keypairs and {} transactions".format(len(w.keypairs), len(w.txes))
     )
+    click.echo("Default version byte: {}".format(w.default_wifnetwork))
     if keys:
         w.dump_keys(output, version=versionprefix, privkey_prefix_override=secretprefix)
     else:
         w.dump_all(output, version=versionprefix, privkey_prefix_override=secretprefix)
     click.echo("Done")
-
-
