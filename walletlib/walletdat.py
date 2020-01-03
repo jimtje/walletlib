@@ -48,7 +48,7 @@ class Walletdat(object):
             coll = collections.OrderedDict((k, db[k]) for k in db.keys())
             return cls(coll)
         except (DBNoSuchFileError, DBError):
-            raise DatabaseError
+            raise DatabaseError(file=filename)
 
     def parse(self, passphrase: Optional[str] = None) -> None:
         """Parse the raw bytes of the db's contents. A bit of a mess right now so API likely to change
@@ -518,7 +518,7 @@ class KeyPair(object):
                 compressed=compress,
             )
         else:
-            raise KeypairError
+            raise KeypairError(message="Pubkey {} error".format(pubkey.format(compressed=compress).hex()))
 
     def parse_wkeyinfo(self, createtime: int, expiretime: int, comment: str) -> None:
         self.createtime = createtime
