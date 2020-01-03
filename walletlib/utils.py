@@ -5,6 +5,7 @@ from .exceptions import *
 
 class BCDataStream(object):
     """BCDataStream from pywallet"""
+
     def __init__(self, input):
         self.input = bytes(input)
         self.read_cursor = 0
@@ -91,7 +92,6 @@ class BCDataStream(object):
         return byte
 
 
-
 def parse_CAddress(vds):
     d = {"ip": "0.0.0.0", "port": 0, "nTime": 0}
     try:
@@ -114,11 +114,8 @@ def parse_BlockLocator(vds):
     return d
 
 
-
 def privkey_to_secret(privkey: bytes) -> bytes:
     if len(privkey) == 279:
-        return privkey[9 : 9 + 32]
+        return privkey[9:41]
     else:
-        return privkey[8 : 8 + 32]
-
-
+        return privkey[8:40]
