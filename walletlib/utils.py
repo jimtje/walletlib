@@ -119,3 +119,4 @@ def privkey_to_secret(privkey: bytes) -> bytes:
         return privkey[9:41]
     else:
         return privkey[8:40]
+

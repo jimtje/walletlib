@@ -14,6 +14,16 @@ def ripemd160_sha256(key):
     return hashlib.new("ripemd160", hashlib.sha256(key).digest()).digest()
 
 
+def keyivderivation(password, salt, keylen, ivlen):
+    password = password.encode()
+    d = b''
+    e = b''
+    while len(d) < keylen + ivlen:
+        e = hashlib.md5(e + password + salt).digest()
+        d += e
+    return d[:keylen], d[keylen: keylen + ivlen]
+
+
 class Crypter(object):
 
     def __init__(self):

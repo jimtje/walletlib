@@ -14,3 +14,6 @@ class DatabaseError(WalletDatError):
 
 class KeypairError(WalletDatError):
     pass
+
+class PassphraseRequired(WalletDatError):
+    pass

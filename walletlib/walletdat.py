@@ -278,15 +278,21 @@ class Walletdat(object):
                 encrypted_privkey = vds.read_bytes(vds.read_compact_size())
                 if passphrase is not None:
                     self.decrypter.setiv(doublesha256(publickey))
-                    dec = self.decrypter.decrypt(encrypted_privkey)
-                    self.keypairs.append(
-                        KeyPair.parse_fromckey(
-                            pubkey=publickey,
-                            privkey=dec,
-                            encryptedkey=encrypted_privkey,
-                            crypted=False,
+                    try:
+                        dec = self.decrypter.decrypt(encrypted_privkey)
+                        self.keypairs.append(
+                            KeyPair.parse_fromckey(
+                                pubkey=publickey,
+                                privkey=dec,
+                                encryptedkey=encrypted_privkey,
+                                crypted=False,
+                            )
                         )
-                    )
+                    except TypeError:
+                        print("Cannot decrypt with supplied passphrase")
+                        self.keypairs.append(KeyPair.parse_fromckey(pubkey=publickey, privkey=None,
+                                encryptedkey=encrypted_privkey, ))
+
                 else:
                     self.keypairs.append(
                         KeyPair.parse_fromckey(

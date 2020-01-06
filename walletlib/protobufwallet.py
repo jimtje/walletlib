@@ -11,14 +11,6 @@ class ProtobufWallet(object):
     def __init__(self, data):
         self.wallet = Wallet()
         self.wallet.ParseFromString(data)
-        self.default_wifnetwork = 0
-        self.keypairs = []
-        self.pool = []
-        self.txes = []
-        self.mnemonics = []
-        self.bestblock = {}
-
-
 
     @classmethod
     def load(cls, filename, passphrase=None):
@@ -45,8 +37,6 @@ class ProtobufWallet(object):
         else:
             raise SerializationError(message="Invalid wallet data")
 
-    def parse(self):
-        if "dogecoin" in self.w.network_identifier:
 
 
 
