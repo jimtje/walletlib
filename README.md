@@ -1,6 +1,8 @@
 # walletlib
 ![PyPI - Python Version](https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8-blue)
 
+[![CircleCI](https://circleci.com/gh/jimtje/walletlib.svg?style=svg)](https://circleci.com/gh/jimtje/walletlib)
+
 Unified interface to programmatically open and extract data from cryptocurrency wallet backup files
 
 ## Quick Start
@@ -12,6 +14,10 @@ $ pip install walletlib
 A convenient cli script is available after installation.
 ```bash
 $ python -m dumpwallet wallet.dat -o output.txt
+```
+or
+```bash
+$ dumpwallet wallet.dat -o output.txt
 ```
 
 ## Features
