@@ -14,7 +14,7 @@ from walletlib import Walletdat
 
 @click.command()
 @click.argument("filename", type=click.Path(exists=True))
-@click.option("-p", "--password", help="Password if any")
+@click.option("-p", "--password", help="Password if any", type=click.STRING)
 @click.option(
     "-o", "--output", help="File to save to. If not set, results only will be displayed"
 )
@@ -32,7 +32,7 @@ def main(filename, password, output, versionprefix, secretprefix, keys):
     w = Walletdat.load(filename)
     click.echo("Loaded file")
     if password:
-        w.parse(passphrase=password)
+        w.parse(passphrase=str(password))
     else:
         w.parse()
     click.echo(
