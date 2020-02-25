@@ -55,7 +55,7 @@ readme-renderer==24.0
 requests==2.22.0
 requests-toolbelt==0.9.1
 scrypt==0.8.13
-semver==2.9.0
+semver==2.9.1
 six==1.13.0
 smmap2==2.0.5
 SQLAlchemy==1.3.12
