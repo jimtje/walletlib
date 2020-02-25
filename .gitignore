@@ -251,3 +251,4 @@ dumpwallet.py
 tests/test_wallets/
 
 batch_process.py
+/.circleci/
