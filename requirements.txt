@@ -21,7 +21,7 @@ docutils==0.16
 ecdsa==0.14.1
 fastecdsa==2.1.0
 fuzzywuzzy==0.18.0
-gitdb2==2.0.6
+gitdb2==4.0.2
 GitPython==2.1.14
 humanfriendly==4.18
 idna==2.9
