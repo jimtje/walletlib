@@ -41,7 +41,7 @@ pluggy==0.13.1
 py==1.8.1
 pyaes==1.6.1
 pycoin==0.90.20190728
-pycparser==2.19
+pycparser==2.20
 pycryptodome==3.9.7
 Pygments==2.5.2
 pygubu==0.9.8.2
