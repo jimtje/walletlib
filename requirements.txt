@@ -43,7 +43,7 @@ pyaes==1.6.1
 pycoin==0.90.20190728
 pycparser==2.19
 pycryptodome==3.9.7
-Pygments==2.5.2
+Pygments==2.6.1
 pygubu==0.9.8.2
 pylint==2.4.4
 pyparsing==2.4.5
