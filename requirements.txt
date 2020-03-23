@@ -44,7 +44,7 @@ pycoin==0.90.20190728
 pycparser==2.19
 pycryptodome==3.9.7
 Pygments==2.5.2
-pygubu==0.9.8.2
+pygubu==0.9.8.6
 pylint==2.4.4
 pyparsing==2.4.5
 pytest==5.3.2
