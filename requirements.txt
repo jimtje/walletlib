@@ -1,7 +1,7 @@
 ansible==2.9.5
 appdirs==1.4.3
 asn1crypto==0.24.0
-astroid==2.3.3
+astroid==2.4.2
 attrs==19.3.0
 base58==1.0.3
 bitcoinlib==0.4.13
