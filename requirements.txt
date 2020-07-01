@@ -1,5 +1,5 @@
 ansible==2.9.5
-appdirs==1.4.3
+appdirs==1.4.4
 asn1crypto==0.24.0
 astroid==2.3.3
 attrs==19.3.0
