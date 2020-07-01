@@ -61,7 +61,7 @@ smmap2==2.0.5
 SQLAlchemy==1.3.13
 tabulate==0.8.3
 toml==0.10.0
-tqdm==4.41.0
+tqdm==4.47.0
 twine==1.15.0
 urllib3==1.25.8
 versioneer==0.18
