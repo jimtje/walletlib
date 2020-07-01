@@ -5,7 +5,7 @@ astroid==2.3.3
 attrs==19.3.0
 base58==1.0.3
 bitcoinlib==0.4.13
-bleach==3.1.4
+bleach==3.1.5
 blessings==1.7
 bsddb3==6.2.7
 certifi==2019.11.28
