@@ -47,7 +47,7 @@ Pygments==2.5.2
 pygubu==0.9.8.2
 pylint==2.4.4
 pyparsing==2.4.5
-pytest==5.3.2
+pytest==5.4.2
 python-gitlab==1.10.0
 python-semantic-release==4.3.4
 readchar==2.0.1
