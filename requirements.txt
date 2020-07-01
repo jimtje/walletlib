@@ -52,7 +52,7 @@ python-gitlab==1.10.0
 python-semantic-release==4.3.4
 readchar==2.0.1
 readme-renderer==24.0
-requests==2.23.0
+requests==2.24.0
 requests-toolbelt==0.9.1
 scrypt==0.8.13
 semver==2.9.1
