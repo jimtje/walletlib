@@ -58,7 +58,7 @@ scrypt==0.8.13
 semver==2.9.1
 six==1.13.0
 smmap2==2.0.5
-SQLAlchemy==1.3.13
+SQLAlchemy==1.3.18
 tabulate==0.8.3
 toml==0.10.0
 tqdm==4.41.0
