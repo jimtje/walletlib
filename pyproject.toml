@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "walletlib"
+version = "0.1.6"
+description = "Library for accessing cryptocurrency wallet files"
+authors = ["jim zhou <43537315+jimtje@users.noreply.github.com>"]
+license = "Unlicense"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+pycryptodome = "^3.9.8"
+click = "^7.1.2"
+coincurve = "^13.0.0"
+bsddb3 = "^6.2.7"
+base58 = "^2.0.1"
+arrow = "^0.17.0"
+
+[tool.poetry.dev-dependencies]
+betterproto = "^1.2.5"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

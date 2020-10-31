@@ -1,8 +1,15 @@
 from setuptools import setup, find_packages
+import os
 
 with open("requirements.txt") as f:
     requirements = f.read().splitlines()
 
+
+setup(
+    name="walletlib",
+    versioning="distance",          # Optional, would activate tag-based versioning
+    setup_requires="setupmeta"      # This is where setupmeta comes in
+)
 
 setup(
     name="walletlib",

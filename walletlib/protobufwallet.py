@@ -1,27 +1,36 @@
 from Crypto.Cipher import AES
-from .bitcoinwallet_pb2 import *
+from typing import List, Union, Any, Optional
+from pathlib import PurePath
+from .bitcoinj_compat import *
 import hashlib
+import arrow
+
+import base58
 import base64
-from .crypto import keyivderivation
-from .exceptions import PassphraseRequired, SerializationError
+from .crypto import ripemd160_sha256
+from .exceptions import SerializationError
+
+
 
 
 class ProtobufWallet(object):
 
-    def __init__(self, data):
+    def __init__(self, data: Any) -> None:
         self.wallet = Wallet()
-        self.wallet.ParseFromString(data)
+        self.wallet.parse(data).to_dict()
         self.default_wifnetwork = 0
         self.keypairs = []
         self.pool = []
         self.txes = []
         self.mnemonics = []
         self.bestblock = {}
+        self.lastblockhash = None
+
 
 
 
     @classmethod
-    def load(cls, filename, passphrase=None):
+    def load(cls, filename: Union[str, PurePath]):
         with open(filename, "rb") as d:
             data = d.read()
         if b'org.' in data:
@@ -29,29 +38,37 @@ class ProtobufWallet(object):
         else:
             data = base64.b64decode(data)
 
-        if data[:8] == b'Salted__':
-            if passphrase is not None:
-                salt = data[8:16]
-                key, iv = keyivderivation(passphrase, salt, 32, AES.block_size)
-                cipher = AES.new(key, AES.MODE_CBC, iv)
-                plaintext = cipher.decrypt(data[AES.block_size:])
-                if isinstance(plaintext[-1], str):
-                    padding_length = ord(plaintext[-1])
-                else:
-                    padding_length = plaintext[-1]
-                return cls(plaintext[:padding_length])
-            else:
-                raise PassphraseRequired(message="Passphrase required, but was not supplied")
+        return cls(data)
+
+    def parse(self, passphrase: Optional[str]=None):
+        if self.wallet["networkIdentifier"] == "org.dogecoin.production":
+            self.default_wifnetwork = 30
+        elif self.wallet["networkIdentifier"] == "org.bitcoin.production":
+            self.default_wifnetwork = 0
+        elif self.wallet["networkIdentifier"] == "org.litecoin.production":
+            self.default_wifnetwork = 48
+        elif self.wallet["networkIdentifier"] == "org.feathercoin.production":
+            self.default_wifnetwork = 14
         else:
-            raise SerializationError(message="Invalid wallet data")
-
-    def parse(self):
-        if "dogecoin" in self.w.network_identifier:
-
-
-
-
-
+            self.default_wifnetwork = 0
+            """
+            Not sure what other variants have been made into bitcoinj-compatible
+            """
+        if passphrase is None and len(self.wallet.key[0]["secretBytes"]):
+            for k in self.wallet.key:
+                prefix = bytes([self.default_wifnetwork + 128])
+                compressed = base58.b58encode_check(prefix + base64.b64decode(k["secretBytes"])).decode()
+                uncompressed = base58.b58encode_check(prefix + base64.b64decode(k["secretBytes"]) + b"\x01").decode()
+                publickey = base58.b58encode_check(bytes[self.default_wifnetwork] + ripemd160_sha256(base64.b64decode(k["publicKey"]))).decode()
+                creationtimestamp = arrow.get(k["creationTimestamp"]).format('YYYY-MM-DD HH:mm:ss ZZ')
+                self.keypairs.append({"publickey": publickey, "uncompressed": uncompressed, "compressed": compressed, "created": creationtimestamp})
+        else:
+            for k in self.wallet.key:
+                publickey = base58.b58encode_check(
+                    bytes[self.default_wifnetwork] + ripemd160_sha256(base64.b64decode(k["publicKey"]))).decode()
+                creationtimestamp = arrow.get(k["creationTimestamp"]).format('YYYY-MM-DD HH:mm:ss ZZ')
+                encrypteddata = base64.b64decode(k["encryptedData"]["encryptedPrivateKey"]).hex()
+                self.keypairs.append({"publickey": publickey, "encryptedkey": encrypteddata})
 
 
 
