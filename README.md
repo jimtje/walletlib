@@ -1,7 +1,7 @@
 # walletlib
 ![PyPI - Python Version](https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8-blue)
 
-[![CircleCI](https://circleci.com/gh/jimtje/walletlib.svg?style=svg)](https://circleci.com/gh/jimtje/walletlib)
+
 
 Unified interface to programmatically open and extract data from cryptocurrency wallet backup files
 
@@ -18,7 +18,9 @@ $ python -m dumpwallet wallet.dat -o output.txt
 or
 ```bash
 $ dumpwallet wallet.dat -o output.txt
+$ dumpwallet wallet-protobuf -o output.txt --keys
 ```
+
 
 ## Features
 - Automatic reading of version byte and WIF prefix from default keys
@@ -44,11 +46,24 @@ wallet.dump_all(filepath="output.txt")
 wallet.dump_keys(filepath="output_keys.txt")
 
 ```
+Bitcoinj wallets:
+
+```python
+import walletlib
+
+wallet = walletlib.ProtobufWallet.load("wallet-protobuf")
+wallet.parse()
+wallet.dump_all(filepath="output.txt")
+wallet.dump_keys(filepath="output_keys.txt")
+```
 
 ## Roadmap
 - [x] wallet.dat
   - [x] Encrypted keys
   - [x] p2pkh Wallets
   - [ ] Bech32 wallets
-- [ ] Bitcoinj/Dogecoinj/Altcoinj wallets - Working in Develop Branch
+- [x] Bitcoinj/Dogecoinj/Altcoinj wallets
+  - [x] Open unencrypted wallet-protobuf/multibit .wallet files
+  - [ ] Decrypt encrypted wallets
+- [ ] Coinomi protobuf wallets
 - [ ] Blockchain.com wallet.aes.json
