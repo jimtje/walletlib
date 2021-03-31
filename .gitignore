@@ -253,3 +253,4 @@ tests/test_wallets/
 batch_process.py
 **/__pycache__/
 /tests/__pycache__/
+/.circleci/*
