@@ -9,12 +9,12 @@ seet of its contents or just the keys out.
 
 """
 import click
-from walletlib import Walletdat
-
+from walletlib import Walletdat, ProtobufWallet
+import json
 
 @click.command()
 @click.argument("filename", type=click.Path(exists=True))
-@click.option("-p", "--password", help="Password if any")
+@click.option("-p", "--password", help="Password if any", type=click.STRING)
 @click.option(
     "-o", "--output", help="File to save to. If not set, results only will be displayed"
 )
@@ -29,18 +29,53 @@ from walletlib import Walletdat
 )
 @click.option("--keys", is_flag=True, help="Only dump keys.")
 def main(filename, password, output, versionprefix, secretprefix, keys):
-    w = Walletdat.load(filename)
-    click.echo("Loaded file")
-    if password:
-        w.parse(passphrase=password)
+    if filename.endswith(".dat"):
+        w = Walletdat.load(filename)
+        click.echo("Loaded file")
+        if password:
+            w.parse(passphrase=str(password))
+        else:
+            w.parse()
+        click.echo(
+            "Found {} keypairs and {} transactions".format(len(w.keypairs), len(w.txes))
+        )
+        click.echo("Default version byte: {}".format(w.default_wifnetwork))
+        if keys:
+            if not output:
+                d = w.dump_keys(version=versionprefix, privkey_prefix_override=secretprefix)
+                click.echo(json.dumps(d, sort_keys=True, indent=4))
+            else:
+                w.dump_keys(output, version=versionprefix, privkey_prefix_override=secretprefix)
+        else:
+            if not output:
+                d = w.dump_all(version=versionprefix, privkey_prefix_override=secretprefix)
+                click.echo(json.dumps(d, sort_keys=True, indent=4))
+            else:
+                w.dump_all(output, version=versionprefix, privkey_prefix_override=secretprefix)
+        click.echo("Done")
     else:
-        w.parse()
-    click.echo(
-        "Found {} keypairs and {} transactions".format(len(w.keypairs), len(w.txes))
-    )
-    click.echo("Default version byte: {}".format(w.default_wifnetwork))
-    if keys:
-        w.dump_keys(output, version=versionprefix, privkey_prefix_override=secretprefix)
-    else:
-        w.dump_all(output, version=versionprefix, privkey_prefix_override=secretprefix)
-    click.echo("Done")
+        try:
+            w = ProtobufWallet.load(filename)
+            click.echo("Loaded file")
+            if password:
+                w.parse(passphrase=str(password))
+            else:
+                w.parse()
+            click.echo("Found {} keypairs and {} transactions".format(len(w.keypairs), len(w.txes)))
+            click.echo("Default version byte: {}".format(w.default_wifnetwork))
+            if keys:
+                if not output:
+                    d = w.dump_keys()
+                    click.echo(json.dumps(d, sort_keys=True, indent=4))
+                else:
+                    w.dump_keys(output)
+            else:
+                if not output:
+                    d = w.dump_all()
+                    click.echo(json.dumps(d, sort_keys=True, indent=4))
+                else:
+                    w.dump_all(output)
+            click.echo("Done")
+        except:
+            click.echo("Error, cannot read wallet file")
+

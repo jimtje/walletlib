@@ -10,7 +10,7 @@ import base58
 from .crypto import *
 from .exceptions import *
 from .utils import *
-
+import ipaddress
 
 class Walletdat(object):
     def __init__(self, db: collections.OrderedDict) -> None:
@@ -61,8 +61,8 @@ class Walletdat(object):
         for key, value in self.db_parsed.items():
             kds = BCDataStream(key)
             vds = BCDataStream(value)
-            type = kds.read_string().decode()
-            if type == "key":
+            keytype = kds.read_string().decode()
+            if keytype == "key":
                 try:
                     keypair = KeyPair.parse_fromwallet(kds, vds)
                     self.keypairs.append(keypair)
@@ -70,14 +70,14 @@ class Walletdat(object):
                     print(
                         "Error: Pubkey data doesn't match pubkey derived from private key"
                     )
-            elif type == "wkey":
+            elif keytype == "wkey":
                 keypair = KeyPair.parse_fromwallet(kds, vds)
                 created = vds.read_int64()
                 expires = vds.read_int64()
                 comment = vds.read_string().decode()
                 keypair.parse_wkeyinfo(created, expires, comment)
                 self.keypairs.append(keypair)
-            elif type == "keymeta":
+            elif keytype == "keymeta":
                 pubkey = kds.read_bytes(kds.read_compact_size())
                 if len(pubkey) == 33:
                     compressed = True
@@ -118,13 +118,14 @@ class Walletdat(object):
                             "has_keyorigin": has_keyorigin,
                         }
                     )
-            elif type == "defaultkey":
+                break
+            elif keytype == "defaultkey":
                 pk = vds.read_bytes(vds.read_compact_size())
                 if len(pk) == 33:
                     self.defaultkey = PublicKey(pk).format()
                 else:
                     self.defaultkey = PublicKey(pk).format(compressed=False)
-            elif type == "name":
+            elif keytype == "name":
                 if len(self.addressbook) > 0:
                     addr = kds.read_string().decode("utf-8")
                     if any(item["address"] == addr for item in self.addressbook):
@@ -168,14 +169,14 @@ class Walletdat(object):
                         {"address": addr, "purpose": vds.read_string().decode("utf-8")}
                     )
 
-            elif type == "tx":
+            elif keytype == "tx":
                 # todo: add segwit
                 try:
                     txid = invert_txid(kds.read_bytes(32))
                     self.txes.append(Transaction.parse(txid, vds))
                 except:
                     pass
-            elif type == "hdchain":
+            elif keytype == "hdchain":
                 version = vds.read_uint32()
                 chain_counter = vds.read_uint32()
                 master_keyid = vds.read_bytes(20).hex()
@@ -186,16 +187,16 @@ class Walletdat(object):
                 }
                 if version > 2:
                     self.hdchain["internal_counter"] = vds.read_uint32()
-            elif type == "version":
+            elif keytype == "version":
                 self.version = vds.read_uint32()
-            elif type == "minversion":
+            elif keytype == "minversion":
                 self.minversion = vds.read_uint32()
-            elif type == "setting":
+            elif keytype == "setting":
                 setname = kds.read_string().decode()
                 if setname[0] == "f":
                     value = vds.read_boolean()
                 elif setname == "addrIncoming":
-                    value = vds.read_string().hex()
+                    value = str(ipaddress.ip_address(vds.read_bytes(4)))
                 elif setname.startswith("addr"):
                     d = {"ip": "0.0.0.0", "port": 0, "nTime": 0}
                     try:
@@ -203,7 +204,7 @@ class Walletdat(object):
                         d["nTime"] = vds.read_uint32()
                         d["nServices"] = vds.read_uint64()
                         d["pchReserved"] = vds.read_bytes(12)
-                        d["ip"] = socket.inet_ntoa(vds.read_bytes(4))
+                        d["ip"] = str(ipaddress.ip_address(vds.read_bytes(4)))
                         d["port"] = vds.read_uint16()
                     except Exception:
                         pass
@@ -213,17 +214,17 @@ class Walletdat(object):
                 elif setname == "nLimitProcessors":
                     value = vds.read_int32()
                 self.setting[setname] = value
-            elif type == "bestblock":
+            elif keytype == "bestblock":
                 version = vds.read_int32()
                 hashes = []
                 for _ in range(vds.read_compact_size()):
                     hashes.append(vds.read_bytes(32).hex())
                 self.bestblock = {"version": version, "hashes": hashes}
-            elif type == "bestblock_nomerkle":
+            elif keytype == "bestblock_nomerkle":
                 version = vds.read_int32()
                 hashes = []
                 self.bestblock = {"version": version, "hashes": hashes}
-            elif type == "pool":
+            elif keytype == "pool":
                 n = kds.read_int64()
                 nversion = vds.read_int32()
                 ntime = vds.read_int64()
@@ -240,16 +241,16 @@ class Walletdat(object):
                         "publickey": PublicKey(pubkey).format(compressed=compressed),
                     }
                 )
-            elif type == "destdata":
+            elif keytype == "destdata":
                 publickey = kds.read_string().decode()
                 key = kds.read_string().decode()
                 # destination = vds.read_string().decode()
                 self.destdata.append({"publickey": publickey, "key": key})
-            elif type == "orderposnext":
+            elif keytype == "orderposnext":
                 self.orderposnext = vds.read_int64()
-            elif type == "flags":
+            elif keytype == "flags":
                 self.flags = vds.read_uint64()
-            elif type == "mkey":
+            elif keytype == "mkey":
                 nid = kds.read_uint32()
                 encrypted_key = vds.read_string()
                 salt = vds.read_string()
@@ -273,20 +274,23 @@ class Walletdat(object):
                     self.decrypter.setkey(masterkey)
                 else:
                     print("No passphrase set for encrypted wallet")
-            elif type == "ckey":
+            elif keytype == "ckey":
                 publickey = kds.read_bytes(kds.read_compact_size())
                 encrypted_privkey = vds.read_bytes(vds.read_compact_size())
                 if passphrase is not None:
-                    self.decrypter.setiv(doublesha256(publickey))
-                    dec = self.decrypter.decrypt(encrypted_privkey)
-                    self.keypairs.append(
-                        KeyPair.parse_fromckey(
+                    try:
+                        self.decrypter.setiv(doublesha256(publickey))
+                        dec = self.decrypter.decrypt(encrypted_privkey)
+                        self.keypairs.append(
+                            KeyPair.parse_fromckey(
                             pubkey=publickey,
                             privkey=dec,
                             encryptedkey=encrypted_privkey,
                             crypted=False,
-                        )
-                    )
+                        ))
+                    except:
+                        raise PasswordError
+
                 else:
                     self.keypairs.append(
                         KeyPair.parse_fromckey(
