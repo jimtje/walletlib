@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "walletlib"
-version = "0.2.0"
+version = "0.2.1"
 description = "Library for accessing cryptocurrency wallet files"
 authors = ["jim zhou <43537315+jimtje@users.noreply.github.com>"]
 license = "Unlicense"
@@ -16,6 +16,7 @@ arrow = "^0.17.0"
 
 [tool.poetry.dev-dependencies]
 betterproto = "^1.2.5"
+twine = "^3.4.1"
 
 [tool.poetry.scripts]
 dumpwallet = "walletlib.scripts.dumpwallet:main"

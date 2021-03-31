@@ -8,7 +8,7 @@ with open("requirements.txt") as f:
 
 setup(
     name="walletlib",
-    version="0.2.0",
+    version="0.2.1",
     packages=find_packages(),
     include_package_data=True,
     url="https://github.com/jimtje/walletlib",
