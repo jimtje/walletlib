@@ -6,7 +6,7 @@
 Unified interface to programmatically open and extract data from cryptocurrency wallet backup files
 
 ## Quick Start
-This module requires Python 3.6+
+This module requires Python 3.7+
 
 ```bash
 $ pip install walletlib
@@ -60,10 +60,13 @@ wallet.dump_keys(filepath="output_keys.txt")
 ## Roadmap
 - [x] wallet.dat
   - [x] Encrypted keys
+  - [x] Auto-identify prefix
+  - [x] Decrypt encrypted keys
   - [x] p2pkh Wallets
   - [ ] Bech32 wallets
 - [x] Bitcoinj/Dogecoinj/Altcoinj wallets
-  - [x] Open unencrypted wallet-protobuf/multibit .wallet files
+  - [x] Open unencrypted wallet-protobuf/multibit .wallet/.key files
   - [ ] Decrypt encrypted wallets
 - [ ] Coinomi protobuf wallets
 - [ ] Blockchain.com wallet.aes.json
+- [ ] Documentation

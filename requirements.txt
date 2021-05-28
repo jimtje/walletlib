@@ -4,3 +4,4 @@ coincurve==13.0.0
 bsddb3==6.2.9
 base58==2.1.0
 arrow==0.17.0
+betterproto==1.2.5
