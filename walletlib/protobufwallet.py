@@ -158,7 +158,7 @@ class ProtobufWallet(object):
     def dump_all(self, filepath: Optional[str] = None) -> Dict:
         output_items = {"keys": self.keypairs, "tx": self.txes, "mnemonics": self.mnemonics, "description": self.description}
         if filepath is not None:
-            with open(filepath, "w") as ft:
+            with open(filepath, "a") as ft:
                 ft.write(json.dumps(output_items, sort_keys=True, indent=4))
         return output_items
 
@@ -169,7 +169,7 @@ class ProtobufWallet(object):
         for each in self.keypairs:
             output_keys.append(each)
         if filepath is not None:
-            with open(filepath, "w") as ft:
+            with open(filepath, "a") as ft:
                 ft.write(json.dumps(output_keys, sort_keys=True, indent=4))
         return output_keys
 

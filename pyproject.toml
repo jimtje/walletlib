@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "walletlib"
-version = "0.2.1"
+version = "0.2.2"
 description = "Library for accessing cryptocurrency wallet files"
 authors = ["jim zhou <43537315+jimtje@users.noreply.github.com>"]
 license = "Unlicense"
@@ -13,9 +13,9 @@ coincurve = "^13.0.0"
 bsddb3 = "^6.2.9"
 base58 = "^2.1.0"
 arrow = "^0.17.0"
+betterproto = "^1.2.5"
 
 [tool.poetry.dev-dependencies]
-betterproto = "^1.2.5"
 twine = "^3.4.1"
 
 [tool.poetry.scripts]

@@ -7,15 +7,16 @@ from typing import Dict, List, Optional
 from bsddb3.db import *
 from coincurve import PrivateKey, PublicKey
 import base58
-from .crypto import *
+from .crypto import Crypter, doublesha256, doublesha256_checksum, ripemd160_sha256
 from .exceptions import *
-from .utils import *
+from .utils import BCDataStream, parse_CAddress, parse_BlockLocator, privkey_to_secret
 import ipaddress
 
 class Walletdat(object):
     def __init__(self, db: collections.OrderedDict) -> None:
         self.db_parsed = db
         self.keypairs = []
+        self.rawkeys = []
         self.pool = []
         self.txes = []
         self.keymetas = []
@@ -32,6 +33,7 @@ class Walletdat(object):
         self.flags = 0
         self.decrypter = Crypter()
         self.mkey = None
+        self.encrypted = False
 
     @classmethod
     def load(cls, filename):
@@ -258,49 +260,48 @@ class Walletdat(object):
                 derivationiters = vds.read_uint32()
                 self.mkey = {
                     "nID": nid,
-                    "encrypted_key": encrypted_key.hex(),
-                    "salt": salt.hex(),
+                    "encrypted_key": encrypted_key,
+                    "salt": salt,
                     "derivationmethod": derivationmethod,
                     "derivationiterations": derivationiters,
                 }
-                if passphrase is not None:
-                    self.decrypter.keyfrompassphrase(
-                        encrypted_key.hex(),
-                        salt.hex(),
-                        derivationiters,
-                        derivationmethod,
-                    )
-                    masterkey = self.decrypter.decrypt(encrypted_key)
-                    self.decrypter.setkey(masterkey)
-                else:
-                    print("No passphrase set for encrypted wallet")
+                self.encrypted = True
+
             elif keytype == "ckey":
                 publickey = kds.read_bytes(kds.read_compact_size())
                 encrypted_privkey = vds.read_bytes(vds.read_compact_size())
-                if passphrase is not None:
+                self.rawkeys.append({"publickey": publickey, "encrypted_privkey": encrypted_privkey})
+            else:
+                print("{} type not implemented".format(type))
+        if self.encrypted:
+            if passphrase is not None:
+                self.decrypter.keyfrompassphrase(bytes(passphrase, "utf-8"), self.mkey["salt"], self.mkey["derivationiterations"], self.mkey["derivationmethod"])
+                masterkey = self.decrypter.decrypt(self.mkey["encrypted_key"])
+                self.decrypter.SetKey(masterkey)
+                for rawkey in self.rawkeys:
                     try:
-                        self.decrypter.setiv(doublesha256(publickey))
-                        dec = self.decrypter.decrypt(encrypted_privkey)
+                        self.decrypter.SetIV(doublesha256(rawkey["publickey"]))
+                        dec = self.decrypter.decrypt(rawkey["encrypted_privkey"])
                         self.keypairs.append(
                             KeyPair.parse_fromckey(
-                            pubkey=publickey,
+                            pubkey=rawkey["publickey"],
                             privkey=dec,
-                            encryptedkey=encrypted_privkey,
+                            encryptedkey=rawkey["encrypted_privkey"],
                             crypted=False,
                         ))
                     except:
                         raise PasswordError
-
-                else:
+            else:
+                print("No passphrase set for encrypted wallet")
+                for rawkey in self.rawkeys:
                     self.keypairs.append(
                         KeyPair.parse_fromckey(
-                            pubkey=publickey,
+                            pubkey=rawkey["publickey"],
                             privkey=None,
-                            encryptedkey=encrypted_privkey,
+                            encryptedkey=rawkey["encrypted_privkey"],
                         )
                     )
-            else:
-                print("{} type not implemented".format(type))
+
 
     def dump_keys(
         self,
@@ -561,8 +562,10 @@ class KeyPair(object):
         else:
             if len(privkey) == 279:
                 sec = privkey[9:41]
-            else:
+            elif len(privkey) == 278:
                 sec = privkey[8:40]
+            else:
+                sec = privkey
             prkey = PrivateKey(sec)
             if pkey == prkey.public_key:
                 pkey = prkey.public_key.format(compressed=compress)
@@ -578,11 +581,12 @@ class KeyPair(object):
                 print("Wrong decryption password")
                 return cls(
                     rawkey=pubkey,
-                    rawvalue=None,
-                    pubkey=pkey,
-                    sec=None,
+                    rawvalue=privkey,
+                    pubkey=pubkey,
+                    sec=sec,
                     encryptedkey=encryptedkey,
                     compressed=compress,
+                    privkey=prkey
                 )
 
     def set_keymeta(

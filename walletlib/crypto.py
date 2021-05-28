@@ -17,31 +17,39 @@ def ripemd160_sha256(key):
 class Crypter(object):
 
     def __init__(self):
-        self.chkey = None
-        self.chiv = None
+        self.chKey = None
+        self.chIV = None
 
-    def setkey(self, key):
-        self.chkey = key
+    @staticmethod
+    def append_PKCS7_padding(s):
+        """return s padded to a multiple of 16-bytes by PKCS7 padding"""
+        numpads = 16 - (len(s) % 16)
+        return s + numpads * chr(numpads)
 
-    def setiv(self, iv):
-        self.chiv = iv
-
-    def keyfrompassphrase(self, keydata, salt, deriviters, derivmethod):
-        if derivmethod != 0:
+    def keyfrompassphrase(
+        self, vKeyData, vSalt, nDerivIterations, nDerivationMethod
+    ):
+        if nDerivationMethod != 0:
             return 0
-        data = keydata + salt
-        for _ in range(deriviters):
+        data = vKeyData + vSalt
+        for i in range(nDerivIterations):
             data = hashlib.sha512(data).digest()
-        self.setkey(data[:32])
-        self.setiv(data[32:32+16])
+        self.SetKey(data[0:32])
+        self.SetIV(data[32: 32 + 16])
         return len(data)
 
+    def SetKey(self, key):
+        self.chKey = key
+
+    def SetIV(self, iv):
+        self.chIV = iv[0:16]
+
     def encrypt(self, data):
-        return AES.new(self.chkey, AES.MODE_CBC, self.chiv).encrypt(data)[:32]
+        return AES.new(self.chKey, AES.MODE_CBC, self.chIV).encrypt(
+            Crypter.append_PKCS7_padding(data)
+        )
 
     def decrypt(self, data):
-        return AES.new(self.chkey, AES.MODE_CBC, self.chiv).decrypt(data)[:32]
-
-
+        return AES.new(self.chKey, AES.MODE_CBC, self.chIV).decrypt(data)[0:32]
 
 

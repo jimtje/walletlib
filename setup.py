@@ -8,7 +8,7 @@ with open("requirements.txt") as f:
 
 setup(
     name="walletlib",
-    version="0.2.1",
+    version="0.2.2",
     packages=find_packages(),
     include_package_data=True,
     url="https://github.com/jimtje/walletlib",
@@ -17,7 +17,7 @@ setup(
     author_email="jimtje@gmail.com",
     description="Library for accessing cryptocurrency wallet files",
     requires_python=">=3.7.0",
-    install_requires=["base58==2.1.0", "bsddb3==6.2.9", "coincurve==13.0.0", "Click==7.1.2", "pycryptodome==3.9.9"],
+    install_requires=requirements,
     entry_points={
         "console_scripts": ["dumpwallet = walletlib.scripts.dumpwallet:main"]
     },
