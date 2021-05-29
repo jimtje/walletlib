@@ -34,6 +34,7 @@ class Walletdat(object):
         self.decrypter = Crypter()
         self.mkey = None
         self.encrypted = False
+        self.decrypted = True
 
     @classmethod
     def load(cls, filename):
@@ -289,10 +290,13 @@ class Walletdat(object):
                             encryptedkey=rawkey["encrypted_privkey"],
                             crypted=False,
                         ))
+                        self.decrypted = True
+
                     except:
                         raise PasswordError
             else:
                 print("No passphrase set for encrypted wallet")
+                self.decrypted = False
                 for rawkey in self.rawkeys:
                     self.keypairs.append(
                         KeyPair.parse_fromckey(
@@ -339,17 +343,22 @@ class Walletdat(object):
             else:
                 wif_prefix = prefix
             pkey = keypair.pubkey_towif(prefix)
-            if compression_override is not None:
-                priv = keypair.privkey_towif(
-                    wif_prefix, compressed=compression_override
-                )
+            if keypair.encryptedkey is None:
+                if compression_override is not None:
+                    priv = keypair.privkey_towif(
+                        wif_prefix, compressed=compression_override
+                    )
+                else:
+                    priv = keypair.privkey_towif(wif_prefix, compressed=keypair.compressed)
+                output_pair = {"public_key": pkey, "private_key": priv}
+                output_list.append(output_pair)
             else:
-                priv = keypair.privkey_towif(wif_prefix, compressed=keypair.compressed)
-            output_list.append({"public_key": pkey, "private_key": priv})
+                output_pair = {"public_key": pkey, "encrypted_privkey": keypair.encryptedkey.hex()}
+                output_list.append(output_pair)
 
             if filepath is not None:
                 with open(filepath, "a") as fq:
-                    if self.mkey is None:
+                    if "private_key" in output_pair.keys():
                         fq.write(pkey.decode() + ":" + priv.decode() + "\n")
                     else:
                         fq.write(
