@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "walletlib"
-version = "0.2.4"
+version = "0.2.5"
 description = "Library for accessing cryptocurrency wallet files"
 authors = ["jim zhou <43537315+jimtje@users.noreply.github.com>"]
 license = "Unlicense"
 
 [tool.poetry.dependencies]
 python = ">= 3.7"
-pycryptodome = "^3.9.8"
+pycryptodome = "^3.9.9"
 click = "^7.1.2"
 coincurve = "^13.0.0"
 bsddb3 = "^6.2.9"

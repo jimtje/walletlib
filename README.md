@@ -5,8 +5,31 @@
 
 Unified interface to programmatically open and extract data from cryptocurrency wallet backup files
 
-## Quick Start
+## Quick Start with Docker - using the dumpwallet script
+
+Make sure that the files you are trying to open are in one directory.
+
+```bash
+$ docker pull jimzhou/walletlib:latest
+$ docker run -v /path/to/your/wallet/folder:/app jimzhou/walletlib:latest wallet.dat -o wallet_output.txt --keys -p password
+```
+Output file will be in the directory with the wallet.
+
 This module requires Python 3.7+
+
+## Quick Start with installation
+
+Note: prior to installation, make sure that BerkeleyDB 4.8+ is installed.
+
+With Homebrew:
+```bash
+$ brew install berkeley-db@4
+```
+
+On Ubuntu
+```
+$ sudo apt-get install libdb++-dev python3-bsddb3
+```
 
 ```bash
 $ pip install walletlib
@@ -20,7 +43,6 @@ or
 $ dumpwallet wallet.dat -o output.txt
 $ dumpwallet wallet-protobuf -o output.txt --keys
 ```
-
 
 ## Features
 - Automatic reading of version byte and WIF prefix from default keys
