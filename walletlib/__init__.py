@@ -7,7 +7,7 @@ author: jim zhou jimtje@gmail.com
 
 from .walletdat import Walletdat
 from .protobufwallet import ProtobufWallet
-__version__ = "0.2.6"
+__version__ = "0.2.7"
 
 __url__ = "https://github.com/jimtje/walletlib"
 

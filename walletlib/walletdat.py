@@ -482,9 +482,7 @@ class Walletdat(object):
         sorted(pools, key=lambda i: (i["n"], i["ntime"]))
         structures["pool"] = pools
         if self.defaultkey is not None:
-
-            defkey = base58.b58encode_check(
-                z + ripemd160_sha256(self.defaultkey)).decode()
+            defkey = base58.b58encode_check(z + ripemd160_sha256(self.defaultkey)).decode()
             structures["default_key"] = defkey
 
         if filepath is not None:
