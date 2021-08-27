@@ -134,7 +134,8 @@ class Key(betterproto.Message):
     # key entry.
     deterministic_seed: bytes = betterproto.bytes_field(8)
     # Encrypted version of the seed
-    encrypted_deterministic_seed: "EncryptedData" = betterproto.message_field(9)
+    encrypted_deterministic_seed: "EncryptedData" = betterproto.message_field(
+        9)
 
 
 @dataclass
@@ -190,7 +191,8 @@ class TransactionConfidence(betterproto.Message):
     # to track them all, just the first. This only makes sense if type = DEAD.
     overriding_transaction: bytes = betterproto.bytes_field(3)
     # If type == BUILDING then this is the depth of the transaction in the
-    # blockchain. Zero confirmations: depth = 0, one confirmation: depth = 1 etc.
+    # blockchain. Zero confirmations: depth = 0, one confirmation: depth = 1
+    # etc.
     depth: int = betterproto.int32_field(4)
     broadcast_by: List["PeerAddress"] = betterproto.message_field(6)
     source: "TransactionConfidenceSource" = betterproto.enum_field(7)
@@ -210,7 +212,8 @@ class Transaction(betterproto.Message):
     lock_time: int = betterproto.uint32_field(4)
     updated_at: int = betterproto.int64_field(5)
     transaction_input: List["TransactionInput"] = betterproto.message_field(6)
-    transaction_output: List["TransactionOutput"] = betterproto.message_field(7)
+    transaction_output: List["TransactionOutput"] = betterproto.message_field(
+        7)
     # A list of blocks in which the transaction has been observed (on any chain).
     # Also, a number used to disambiguate ordering within a block.
     block_hash: List[bytes] = betterproto.bytes_field(8)
@@ -311,7 +314,8 @@ class Wallet(betterproto.Message):
     key_rotation_time: int = betterproto.uint64_field(13)
     tags: List["Tag"] = betterproto.message_field(16)
     # transaction signers added to the wallet
-    transaction_signers: List["TransactionSigner"] = betterproto.message_field(17)
+    transaction_signers: List["TransactionSigner"] = betterproto.message_field(
+        17)
 
 
 @dataclass

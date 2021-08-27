@@ -141,7 +141,8 @@ class Key(betterproto.Message):
     # key entry.
     deterministic_seed: bytes = betterproto.bytes_field(8)
     # Encrypted version of the seed
-    encrypted_deterministic_seed: "EncryptedData" = betterproto.message_field(9)
+    encrypted_deterministic_seed: "EncryptedData" = betterproto.message_field(
+        9)
     # The path to the root. Only applicable to a DETERMINISTIC_MNEMONIC key
     # entry.
     account_path: List[int] = betterproto.uint32_field(10)
@@ -209,7 +210,8 @@ class TransactionConfidence(betterproto.Message):
     # to track them all, just the first. This only makes sense if type = DEAD.
     overriding_transaction: bytes = betterproto.bytes_field(3)
     # If type == BUILDING then this is the depth of the transaction in the
-    # blockchain. Zero confirmations: depth = 0, one confirmation: depth = 1 etc.
+    # blockchain. Zero confirmations: depth = 0, one confirmation: depth = 1
+    # etc.
     depth: int = betterproto.int32_field(4)
     broadcast_by: List["PeerAddress"] = betterproto.message_field(6)
     # Millis since epoch the transaction was last announced to us.
@@ -231,7 +233,8 @@ class Transaction(betterproto.Message):
     lock_time: int = betterproto.uint32_field(4)
     updated_at: int = betterproto.int64_field(5)
     transaction_input: List["TransactionInput"] = betterproto.message_field(6)
-    transaction_output: List["TransactionOutput"] = betterproto.message_field(7)
+    transaction_output: List["TransactionOutput"] = betterproto.message_field(
+        7)
     # A list of blocks in which the transaction has been observed (on any chain).
     # Also, a number used to disambiguate ordering within a block.
     block_hash: List[bytes] = betterproto.bytes_field(8)

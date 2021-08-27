@@ -12,6 +12,7 @@ from .exceptions import *
 from .utils import BCDataStream, parse_CAddress, parse_BlockLocator, privkey_to_secret
 import ipaddress
 
+
 class Walletdat(object):
     def __init__(self, db: collections.OrderedDict) -> None:
         self.db_parsed = db
@@ -58,7 +59,7 @@ class Walletdat(object):
 
         :param passphrase: Passphrase to the wallet
         :type passphrase: string
-        :return: None 
+        :return: None
         :rtype: None
         """
         for key, value in self.db_parsed.items():
@@ -101,7 +102,8 @@ class Walletdat(object):
                     fingerprint = vds.read_uint32()
                     has_keyorigin = vds.read_boolean()
                 for key in self.keypairs:
-                    if key.publickey == PublicKey(pubkey).format(compressed=compressed):
+                    if key.publickey == PublicKey(
+                            pubkey).format(compressed=compressed):
                         key.set_keymeta(
                             version,
                             createtime,
@@ -131,7 +133,8 @@ class Walletdat(object):
             elif keytype == "name":
                 if len(self.addressbook) > 0:
                     addr = kds.read_string().decode("utf-8")
-                    if any(item["address"] == addr for item in self.addressbook):
+                    if any(
+                            item["address"] == addr for item in self.addressbook):
                         for item in self.addressbook:
                             if item["address"] == addr:
                                 item.update(
@@ -153,7 +156,8 @@ class Walletdat(object):
             elif type == "purpose":
                 if len(self.addressbook) > 0:
                     addr = kds.read_string().decode("utf-8")
-                    if any(item["address"] == addr for item in self.addressbook):
+                    if any(
+                            item["address"] == addr for item in self.addressbook):
                         for item in self.addressbook:
                             if item["address"] == addr:
                                 item.update(
@@ -177,7 +181,7 @@ class Walletdat(object):
                 try:
                     txid = invert_txid(kds.read_bytes(32))
                     self.txes.append(Transaction.parse(txid, vds))
-                except:
+                except BaseException:
                     pass
             elif keytype == "hdchain":
                 version = vds.read_uint32()
@@ -271,28 +275,36 @@ class Walletdat(object):
             elif keytype == "ckey":
                 publickey = kds.read_bytes(kds.read_compact_size())
                 encrypted_privkey = vds.read_bytes(vds.read_compact_size())
-                self.rawkeys.append({"publickey": publickey, "encrypted_privkey": encrypted_privkey})
+                self.rawkeys.append(
+                    {"publickey": publickey, "encrypted_privkey": encrypted_privkey})
             else:
                 print("{} type not implemented".format(type))
         if self.encrypted:
             if passphrase is not None:
-                self.decrypter.keyfrompassphrase(bytes(passphrase, "utf-8"), self.mkey["salt"], self.mkey["derivationiterations"], self.mkey["derivationmethod"])
+                self.decrypter.keyfrompassphrase(
+                    bytes(
+                        passphrase,
+                        "utf-8"),
+                    self.mkey["salt"],
+                    self.mkey["derivationiterations"],
+                    self.mkey["derivationmethod"])
                 masterkey = self.decrypter.decrypt(self.mkey["encrypted_key"])
                 self.decrypter.SetKey(masterkey)
                 for rawkey in self.rawkeys:
                     try:
                         self.decrypter.SetIV(doublesha256(rawkey["publickey"]))
-                        dec = self.decrypter.decrypt(rawkey["encrypted_privkey"])
+                        dec = self.decrypter.decrypt(
+                            rawkey["encrypted_privkey"])
                         self.keypairs.append(
                             KeyPair.parse_fromckey(
-                            pubkey=rawkey["publickey"],
-                            privkey=dec,
-                            encryptedkey=rawkey["encrypted_privkey"],
-                            crypted=False,
-                        ))
+                                pubkey=rawkey["publickey"],
+                                privkey=dec,
+                                encryptedkey=rawkey["encrypted_privkey"],
+                                crypted=False,
+                            ))
                         self.decrypted = True
 
-                    except:
+                    except BaseException:
                         raise PasswordError
             else:
                 print("No passphrase set for encrypted wallet")
@@ -306,7 +318,6 @@ class Walletdat(object):
                         )
                     )
 
-
     def dump_keys(
         self,
         filepath: Optional[str] = None,
@@ -316,7 +327,7 @@ class Walletdat(object):
     ) -> List:
         """ Dump just pubkey:privatekey either as a list, write to a file, or both.
 
-        
+
         :param filepath: The output file. Leave as None to not write to file
         :type filepath:  string
         :param version: Version byte for the p2pkh key being generated. Should be between 0 and 127
@@ -349,11 +360,13 @@ class Walletdat(object):
                         wif_prefix, compressed=compression_override
                     )
                 else:
-                    priv = keypair.privkey_towif(wif_prefix, compressed=keypair.compressed)
+                    priv = keypair.privkey_towif(
+                        wif_prefix, compressed=keypair.compressed)
                 output_pair = {"public_key": pkey, "private_key": priv}
                 output_list.append(output_pair)
             else:
-                output_pair = {"public_key": pkey, "encrypted_privkey": keypair.encryptedkey.hex()}
+                output_pair = {"public_key": pkey,
+                               "encrypted_privkey": keypair.encryptedkey.hex()}
                 output_list.append(output_pair)
 
             if filepath is not None:
@@ -362,8 +375,10 @@ class Walletdat(object):
                         fq.write(pkey.decode() + ":" + priv.decode() + "\n")
                     else:
                         fq.write(
-                            pkey.decode() + ":" + keypair.encryptedkey.hex() + "\n"
-                        )
+                            pkey.decode() +
+                            ":" +
+                            keypair.encryptedkey.hex() +
+                            "\n")
 
         return output_list
 
@@ -413,8 +428,10 @@ class Walletdat(object):
                     wif_prefix = privkey_prefix_override - 128
                 else:
                     wif_prefix = prefix
-                priv_compressed = keypair.privkey_towif(wif_prefix, compressed=True)
-                priv_uncompressed = keypair.privkey_towif(wif_prefix, compressed=False)
+                priv_compressed = keypair.privkey_towif(
+                    wif_prefix, compressed=True)
+                priv_uncompressed = keypair.privkey_towif(
+                    wif_prefix, compressed=False)
                 keyd = {
                     "public_key": pkey.decode(),
                     "compressed_private_key": priv_compressed.decode(),
@@ -454,18 +471,21 @@ class Walletdat(object):
                 {
                     "n": p["n"],
                     "nversion": p["nversion"],
-                    "ntime": datetime.datetime.utcfromtimestamp(p["ntime"]).isoformat(),
+                    "ntime": datetime.datetime.utcfromtimestamp(
+                        p["ntime"]).isoformat(),
                     "public_key": base58.b58encode_check(
-                        z + ripemd160_sha256(p["publickey"])
-                    ).decode(),
-                }
-            )
+                        z +
+                        ripemd160_sha256(
+                            p["publickey"])).decode(),
+                })
 
         sorted(pools, key=lambda i: (i["n"], i["ntime"]))
         structures["pool"] = pools
+        if self.defaultkey is not None:
 
-        defkey = base58.b58encode_check(z + ripemd160_sha256(self.defaultkey)).decode()
-        structures["default_key"] = defkey
+            defkey = base58.b58encode_check(
+                z + ripemd160_sha256(self.defaultkey)).decode()
+            structures["default_key"] = defkey
 
         if filepath is not None:
             with open(filepath, "a") as fq:
@@ -480,8 +500,14 @@ class KeyPair(object):
     """
 
     def __init__(
-        self, rawkey, rawvalue, pubkey, sec, compressed, privkey=None, encryptedkey=None
-    ):
+            self,
+            rawkey,
+            rawvalue,
+            pubkey,
+            sec,
+            compressed,
+            privkey=None,
+            encryptedkey=None):
         self.rawkey = rawkey
         self.rawvalue = rawvalue
         self.publickey = pubkey
@@ -532,9 +558,16 @@ class KeyPair(object):
                 compressed=compress,
             )
         else:
-            raise KeypairError(message="Pubkey {} error".format(pubkey.format(compressed=compress).hex()))
+            raise KeypairError(
+                message="Pubkey {} error".format(
+                    pubkey.format(
+                        compressed=compress).hex()))
 
-    def parse_wkeyinfo(self, createtime: int, expiretime: int, comment: str) -> None:
+    def parse_wkeyinfo(
+            self,
+            createtime: int,
+            expiretime: int,
+            comment: str) -> None:
         self.createtime = createtime
         self.expiretime = expiretime
         self.comment = comment
@@ -640,9 +673,11 @@ class KeyPair(object):
         :rtype:
         """
         prefix = bytes([network_version])
-        return base58.b58encode_check(prefix + ripemd160_sha256(self.publickey))
+        return base58.b58encode_check(
+            prefix + ripemd160_sha256(self.publickey))
 
-    def privkey_towif(self, network_version: int = 0, compressed: bool = True) -> bytes:
+    def privkey_towif(self, network_version: int = 0,
+                      compressed: bool = True) -> bytes:
         """
 
         :param network_version: version byte
@@ -658,7 +693,8 @@ class KeyPair(object):
                 suffix = b"\x01"
             else:
                 suffix = b""
-            return base58.b58encode_check(prefix + self.privkey.secret + suffix)
+            return base58.b58encode_check(
+                prefix + self.privkey.secret + suffix)
         elif self.encryptedkey is not None:
             return self.encryptedkey
 
@@ -697,8 +733,13 @@ class Transaction(object):
     """Transaction object - not to be called directly."""
 
     def __init__(
-        self, txid: str, version: int, txin: List, txout: List, locktime: int, tx: bytes
-    ) -> None:
+            self,
+            txid: str,
+            version: int,
+            txin: List,
+            txout: List,
+            locktime: int,
+            tx: bytes) -> None:
         """
 
         :param txid: transaction id string
@@ -744,7 +785,7 @@ class Transaction(object):
             }
             txout.append(d)
         locktime = vds.read_uint32()
-        tx = vds.input[start : vds.read_cursor]
+        tx = vds.input[start: vds.read_cursor]
         return cls(
             txid,
             version,

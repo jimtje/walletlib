@@ -27,7 +27,7 @@ class BCDataStream(object):
 
     def read_bytes(self, length):
         try:
-            result = self.input[self.read_cursor : self.read_cursor + length]
+            result = self.input[self.read_cursor: self.read_cursor + length]
             self.read_cursor += length
             return result
         except IndexError:
@@ -101,7 +101,7 @@ def parse_CAddress(vds):
         d["pchReserved"] = vds.read_bytes(12)
         d["ip"] = socket.inet_ntoa(vds.read_bytes(4))
         d["port"] = vds.read_uint16()
-    except:
+    except BaseException:
         pass
     return d
 

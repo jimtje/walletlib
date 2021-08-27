@@ -51,5 +51,3 @@ class Crypter(object):
 
     def decrypt(self, data):
         return AES.new(self.chKey, AES.MODE_CBC, self.chIV).decrypt(data)[0:32]
-
-
