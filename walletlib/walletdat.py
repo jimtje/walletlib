@@ -152,7 +152,10 @@ class Walletdat(object):
                     self.addressbook.append(
                         {"address": addr, "label": vds.read_string().decode("utf-8")}
                     )
-                self.default_wifnetwork = ord(base58.b58decode_check(addr)[:1])
+                if ord(base58.b58decode_check(addr)[:1]) == 5:
+                    self.default_wifnetwork = 0
+                else:
+                    self.default_wifnetwork = ord(base58.b58decode_check(addr)[:1])
             elif type == "purpose":
                 if len(self.addressbook) > 0:
                     addr = kds.read_string().decode("utf-8")
@@ -317,6 +320,9 @@ class Walletdat(object):
                             encryptedkey=rawkey["encrypted_privkey"],
                         )
                     )
+        if self.default_wifnetwork is None:
+            self.default_wifnetwork = 0
+
 
     def dump_keys(
         self,
