@@ -181,11 +181,8 @@ class ProtobufWallet(object):
         return output_items
 
     def dump_keys(self, filepath: Optional[str] = None) -> List:
-        output_keys = []
-        for each in self.mnemonics:
-            output_keys.append(each)
-        for each in self.keypairs:
-            output_keys.append(each)
+        output_keys = list(self.mnemonics)
+        output_keys.extend(iter(self.keypairs))
         if filepath is not None:
             with open(filepath, "a") as ft:
                 ft.write(json.dumps(output_keys, sort_keys=True, indent=4))

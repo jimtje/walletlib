@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "walletlib"
-version = "0.2.9"
+version = "0.2.10"
 description = "Library for accessing cryptocurrency wallet files"
 authors = ["jim zhou <43537315+jimtje@users.noreply.github.com>"]
 license = "Unlicense"
