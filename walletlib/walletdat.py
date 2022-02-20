@@ -101,6 +101,12 @@ class Walletdat(object):
                 else:
                     fingerprint = vds.read_uint32()
                     has_keyorigin = vds.read_boolean()
+                self.keymetas.append(
+                        {
+                            "version": version, "createtime": createtime, "hdkeypath": hdkeypath,
+                            "hdmasterkey": hdmasterkey, "fingerprint": fingerprint, "has_keyorigin": has_keyorigin,
+                        }
+                )
                 for key in self.keypairs:
                     if key.publickey == PublicKey(
                             pubkey).format(compressed=compressed):
@@ -112,18 +118,6 @@ class Walletdat(object):
                             fingerprint,
                             has_keyorigin,
                         )
-                else:
-                    self.keymetas.append(
-                        {
-                            "version": version,
-                            "createtime": createtime,
-                            "hdkeypath": hdkeypath,
-                            "hdmasterkey": hdmasterkey,
-                            "fingerprint": fingerprint,
-                            "has_keyorigin": has_keyorigin,
-                        }
-                    )
-                break
             elif keytype == "defaultkey":
                 pk = vds.read_bytes(vds.read_compact_size())
                 if len(pk) == 33:
@@ -349,11 +343,7 @@ class Walletdat(object):
             self.parse()
             # Run parse to populate if forgot
         output_list = []
-        if version is None:
-            prefix = self.default_wifnetwork
-        else:
-            prefix = version
-
+        prefix = self.default_wifnetwork if version is None else version
         for keypair in self.keypairs:
             if privkey_prefix_override is not None:
                 wif_prefix = privkey_prefix_override - 128
@@ -369,15 +359,13 @@ class Walletdat(object):
                     priv = keypair.privkey_towif(
                         wif_prefix, compressed=keypair.compressed)
                 output_pair = {"public_key": pkey, "private_key": priv}
-                output_list.append(output_pair)
             else:
                 output_pair = {"public_key": pkey,
                                "encrypted_privkey": keypair.encryptedkey.hex()}
-                output_list.append(output_pair)
-
+            output_list.append(output_pair)
             if filepath is not None:
                 with open(filepath, "a") as fq:
-                    if "private_key" in output_pair.keys():
+                    if "private_key" in output_pair:
                         fq.write(pkey.decode() + ":" + priv.decode() + "\n")
                     else:
                         fq.write(
@@ -422,11 +410,7 @@ class Walletdat(object):
             "orderposnext": self.orderposnext,
         }
 
-        if version is None:
-            prefix = self.default_wifnetwork
-        else:
-            prefix = version
-
+        prefix = self.default_wifnetwork if version is None else version
         for keypair in self.keypairs:
             pkey = keypair.pubkey_towif(prefix)
             if keypair.encryptedkey is None:
@@ -471,10 +455,7 @@ class Walletdat(object):
             structures["tx"].append(apg)
 
         z = bytes([prefix])
-        pools = []
-        for p in self.pool:
-            pools.append(
-                {
+        pools = [{
                     "n": p["n"],
                     "nversion": p["nversion"],
                     "ntime": datetime.datetime.utcfromtimestamp(
@@ -483,8 +464,7 @@ class Walletdat(object):
                         z +
                         ripemd160_sha256(
                             p["publickey"])).decode(),
-                })
-
+                } for p in self.pool]
         sorted(pools, key=lambda i: (i["n"], i["ntime"]))
         structures["pool"] = pools
         if self.defaultkey is not None:

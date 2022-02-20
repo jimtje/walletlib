@@ -5,7 +5,7 @@
 
 Unified interface to programmatically open and extract data from cryptocurrency wallet backup files
 
-# Quick Start with Docker - Start here if you simply need to dump the contents of a wallet file
+## Quick Start with Docker - Start here if you simply need to dump the contents of a wallet file
 
 ### Make sure that the files you are trying to open are in one directory.
 
@@ -64,7 +64,7 @@ $ python setup.py install
 ```python
 import walletlib
 
-wallet = walletlib.Walletdat.load("wallet.dat")
+wallet = walletlib.Walletdat.load("path/to/wallet.dat")
 wallet.parse(passphrase="password")
 wallet.dump_all(filepath="output.txt")
 wallet.dump_keys(filepath="output_keys.txt")
@@ -75,7 +75,7 @@ Bitcoinj wallets:
 ```python
 import walletlib
 
-wallet = walletlib.ProtobufWallet.load("wallet-protobuf")
+wallet = walletlib.ProtobufWallet.load("path/to/wallet-protobuf")
 wallet.parse()
 wallet.dump_all(filepath="output.txt")
 wallet.dump_keys(filepath="output_keys.txt")
