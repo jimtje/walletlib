@@ -1,6 +1,7 @@
 # walletlib
 ![PyPI - Python Version](https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue)
 
+![PyPI - Downloads](https://img.shields.io/pypi/dm/walletlib)
 
 
 Unified interface to programmatically open and extract data from cryptocurrency wallet backup files
