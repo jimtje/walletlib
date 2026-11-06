@@ -82,7 +82,15 @@ wallet.dump_all(filepath="output.txt")
 wallet.dump_keys(filepath="output_keys.txt")
 ```
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/chart?repos=jimtje/walletlib&type=timeline&legend=top-left)](https://www.star-history.com/?repos=jimtje%2Fwalletlib&type=timeline&legend=top-left)
+
+
 ## Roadmap
+
+- [ ] Python-native bsddb3 adapter
+
 - [x] wallet.dat
   - [x] Encrypted keys
   - [x] Auto-identify prefix
